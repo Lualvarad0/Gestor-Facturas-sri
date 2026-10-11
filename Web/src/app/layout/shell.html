@@ -1,0 +1,105 @@
+<div class="min-h-dvh lg:flex">
+  <!-- Fondo del menú en móvil -->
+  @if (menuAbierto()) {
+    <div class="fixed inset-0 z-30 bg-black/40 lg:hidden" (click)="menuAbierto.set(false)" aria-hidden="true"></div>
+  }
+
+  <!-- Menú lateral -->
+  <aside
+    id="menu-lateral"
+    class="fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-border bg-bg-2 transition-transform duration-200 lg:sticky lg:top-0 lg:h-dvh lg:translate-x-0"
+    [class.-translate-x-full]="!menuAbierto()"
+    aria-label="Navegación principal"
+  >
+    <div class="flex h-16 items-center justify-between gap-2 px-5">
+      <a routerLink="/gastos" class="rounded-md" aria-label="Nudo, ir a tus gastos">
+        <app-marca [tamano]="28" />
+      </a>
+      <button type="button" class="btn btn-ghost -mr-2 px-2 lg:hidden" aria-label="Cerrar menú" (click)="menuAbierto.set(false)">
+        <svg lucideX class="size-5" aria-hidden="true"></svg>
+      </button>
+    </div>
+
+    <nav class="flex-1 overflow-y-auto px-3 pb-4">
+      <ul class="space-y-1">
+        <li>
+          <a routerLink="/importar" routerLinkActive="nav-activo" class="nav-item">
+            <svg lucideFileUp class="size-5" aria-hidden="true"></svg> Traer facturas
+          </a>
+        </li>
+        <li>
+          <a routerLink="/gastos" routerLinkActive="nav-activo" class="nav-item">
+            <svg lucideReceipt class="size-5" aria-hidden="true"></svg> Gastos
+          </a>
+        </li>
+        <li>
+          <a routerLink="/proveedores" routerLinkActive="nav-activo" class="nav-item">
+            <svg lucideStore class="size-5" aria-hidden="true"></svg> Proveedores
+          </a>
+        </li>
+      </ul>
+
+    </nav>
+
+    <div class="border-t border-border p-3">
+      <a routerLink="/configuracion" routerLinkActive="nav-activo" class="nav-item">
+        <svg lucideSettings class="size-5" aria-hidden="true"></svg>
+        <span class="flex-1">Configuración</span>
+        @if (!perfil.completo()) {
+          <span class="size-2 rounded-full bg-warning" aria-hidden="true"></span>
+          <span class="sr-only">(perfil incompleto)</span>
+        }
+      </a>
+      <div class="mt-2 flex items-center gap-3 rounded-lg px-3 py-2">
+        <span class="grid size-9 shrink-0 place-items-center rounded-full bg-primary-soft text-sm font-semibold text-primary" aria-hidden="true">{{ iniciales() }}</span>
+        <div class="min-w-0 flex-1">
+          <p class="truncate text-sm font-medium">{{ auth.usuario()?.nombre }}</p>
+          <p class="truncate text-xs text-muted-fg">{{ auth.usuario()?.email }}</p>
+        </div>
+        <button type="button" class="btn btn-ghost -mr-2 px-2" aria-label="Cerrar sesión" title="Cerrar sesión" (click)="auth.cerrarSesion()">
+          <svg lucideLogOut class="size-5" aria-hidden="true"></svg>
+        </button>
+      </div>
+    </div>
+    <app-credito class="block px-6 pb-4" />
+  </aside>
+
+  <!-- Contenido -->
+  <div class="flex min-w-0 flex-1 flex-col">
+    <header class="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border bg-bg/90 px-4 backdrop-blur sm:px-6">
+      <button
+        type="button"
+        class="btn btn-ghost -ml-2 px-2 lg:hidden"
+        aria-label="Abrir menú"
+        aria-controls="menu-lateral"
+        [attr.aria-expanded]="menuAbierto()"
+        (click)="menuAbierto.set(true)"
+      >
+        <svg lucideMenu class="size-5" aria-hidden="true"></svg>
+      </button>
+
+      <p class="text-sm font-semibold">{{ periodo.etiqueta() }}</p>
+
+      <div class="ml-auto">
+        <button
+          type="button"
+          class="btn btn-ghost px-2"
+          [attr.aria-label]="preferencias.tema() === 'dark' ? 'Usar tema claro' : 'Usar tema oscuro'"
+          (click)="preferencias.alternarTema()"
+        >
+          @if (preferencias.tema() === 'dark') {
+            <svg lucideSun class="size-5" aria-hidden="true"></svg>
+          } @else {
+            <svg lucideMoon class="size-5" aria-hidden="true"></svg>
+          }
+        </button>
+      </div>
+    </header>
+
+    <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
+      <router-outlet />
+    </main>
+  </div>
+</div>
+
+<app-avisos />

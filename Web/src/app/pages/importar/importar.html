@@ -1,0 +1,189 @@
+<app-titulo
+  linea1="Trae tus"
+  linea2="facturas"
+  subtitulo="Sube el reporte .txt de SRI en Línea o los XML de tus facturas del mes. Cada comprobante se verifica con el SRI y se ordena en tus gastos."
+/>
+
+<div class="mt-6 grid gap-6 lg:grid-cols-[1fr_20rem]">
+  <section class="card p-5 sm:p-6">
+    <!-- Selector de modo -->
+    <div class="inline-flex rounded-lg bg-muted p-1" role="tablist" aria-label="Forma de importar">
+      <button
+        type="button"
+        role="tab"
+        class="inline-flex min-h-9 items-center gap-2 rounded-md px-3 text-sm font-medium transition-colors"
+        [class]="modo() === 'archivos' ? 'bg-card text-fg shadow-sm' : 'text-muted-fg hover:text-fg'"
+        [attr.aria-selected]="modo() === 'archivos'"
+        (click)="modo.set('archivos')"
+      >
+        <svg lucideFileUp class="size-4" aria-hidden="true"></svg> Reporte .txt o XML
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="inline-flex min-h-9 items-center gap-2 rounded-md px-3 text-sm font-medium transition-colors"
+        [class]="modo() === 'claves' ? 'bg-card text-fg shadow-sm' : 'text-muted-fg hover:text-fg'"
+        [attr.aria-selected]="modo() === 'claves'"
+        (click)="modo.set('claves')"
+      >
+        <svg lucideClipboardPaste class="size-4" aria-hidden="true"></svg> Pegar claves
+      </button>
+    </div>
+
+    @if (modo() === 'archivos') {
+      <label
+        for="archivos"
+        class="mt-5 flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-10 text-center transition-colors"
+        [class]="arrastrando() ? 'border-accent bg-primary-soft' : 'border-border hover:border-accent hover:bg-muted/50'"
+        (dragover)="$event.preventDefault(); arrastrando.set(true)"
+        (dragleave)="arrastrando.set(false)"
+        (drop)="soltar($event)"
+      >
+        <svg lucideUpload class="size-8 text-muted-fg" aria-hidden="true"></svg>
+        <span class="mt-3 font-medium">Arrastra aquí tus archivos o <span class="text-accent underline">elígelos</span></span>
+        <span class="mt-1 text-sm text-muted-fg">Reporte .txt del SRI y/o archivos .xml · hasta 10 MB</span>
+      </label>
+      <input id="archivos" type="file" class="sr-only" multiple accept=".txt,.xml,.csv,text/plain,application/xml,text/xml" (change)="agregar($any($event.target).files); $any($event.target).value = ''" />
+
+      @if (archivos().length) {
+        <ul class="mt-4 divide-y divide-border rounded-lg border border-border">
+          @for (a of archivos(); track a.name) {
+            <li class="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+              <span class="min-w-0 truncate">{{ a.name }}</span>
+              <span class="flex shrink-0 items-center gap-2 text-muted-fg">
+                {{ tamano(a.size) }}
+                <button type="button" class="btn btn-ghost min-h-8 px-1.5" [attr.aria-label]="'Quitar ' + a.name" (click)="quitar(a)">
+                  <svg lucideX class="size-4" aria-hidden="true"></svg>
+                </button>
+              </span>
+            </li>
+          }
+        </ul>
+      }
+    } @else {
+      <div class="mt-5">
+        <label for="claves" class="field-label">Claves de acceso</label>
+        <textarea
+          id="claves"
+          rows="7"
+          class="input py-2 font-mono text-xs"
+          placeholder="Pega una o varias claves de 49 dígitos, en cualquier formato"
+          [value]="texto()"
+          (input)="texto.set($any($event.target).value)"
+        ></textarea>
+        <p class="mt-1.5 text-xs text-muted-fg">La clave de acceso aparece en el RIDE (PDF) de cada factura, junto al código de barras.</p>
+      </div>
+    }
+
+    @if (error()) {
+      <p class="aviso-error mt-4 py-3" role="alert">
+        <svg lucideCircleAlert class="mt-0.5 size-4 shrink-0 text-danger" aria-hidden="true"></svg> {{ error() }}
+      </p>
+    }
+
+    <div class="mt-5 flex flex-wrap items-center gap-3">
+      <button type="button" class="btn btn-primary" [disabled]="!puedeImportar()" (click)="importar()">
+        @if (importando()) {
+          <svg lucideLoader class="size-4 animate-spin" aria-hidden="true"></svg> Consultando al SRI…
+        } @else {
+          Importar y verificar
+        }
+      </button>
+      @if (importando()) {
+        <span class="text-sm text-muted-fg" role="status">Esto puede tardar unos segundos por cada comprobante nuevo.</span>
+      }
+    </div>
+  </section>
+
+  <aside class="card h-fit p-5 text-sm">
+    <h2 class="font-semibold">¿Dónde descargo el reporte?</h2>
+    <ol class="mt-3 list-decimal space-y-2 pl-5 text-muted-fg">
+      <li>Ingresa a <span class="text-fg">SRI en Línea</span> con tu RUC o cédula.</li>
+      <li>Ve a <span class="text-fg">Facturación electrónica → Comprobantes electrónicos recibidos</span>.</li>
+      <li>Elige el año, el mes y el tipo <span class="text-fg">Todos</span>, y consulta.</li>
+      <li>Descarga el <span class="text-fg">reporte (.txt)</span> y súbelo aquí.</li>
+    </ol>
+    <p class="mt-4 text-muted-fg">Si importas un archivo dos veces, no se duplica nada: los comprobantes que ya tienes se omiten.</p>
+  </aside>
+</div>
+
+<!-- Resultado -->
+@if (resultado(); as r) {
+  <section class="card mt-6 p-5 sm:p-6" aria-labelledby="titulo-resultado" aria-live="polite">
+    <h2 id="titulo-resultado" class="font-semibold">Resultado de la importación</h2>
+    <dl class="mt-4 grid gap-4 sm:grid-cols-4">
+      <div class="rounded-lg bg-muted p-4">
+        <dt class="text-sm text-muted-fg">Claves encontradas</dt>
+        <dd class="mt-1 text-2xl font-semibold">{{ r.clavesEncontradas }}</dd>
+      </div>
+      <div class="rounded-lg bg-success-soft p-4">
+        <dt class="text-sm text-muted-fg">Importados</dt>
+        <dd class="mt-1 text-2xl font-semibold text-success">{{ r.importados }}</dd>
+      </div>
+      <div class="rounded-lg bg-muted p-4">
+        <dt class="text-sm text-muted-fg">Ya los tenías</dt>
+        <dd class="mt-1 text-2xl font-semibold">{{ r.yaExistian }}</dd>
+      </div>
+      <div class="rounded-lg p-4" [class]="r.conProblemas ? 'bg-warning-soft' : 'bg-muted'">
+        <dt class="text-sm text-muted-fg">Con observaciones</dt>
+        <dd class="mt-1 text-2xl font-semibold">{{ r.conProblemas }}</dd>
+      </div>
+    </dl>
+
+    @if (r.ingresos > 0) {
+      <p class="mt-4 text-sm text-muted-fg">
+        {{ r.ingresos }} {{ r.ingresos === 1 ? 'factura emitida con tu RUC no se cuenta' : 'facturas emitidas con tu RUC no se cuentan' }} como gasto.
+      </p>
+    }
+    @if (!r.perfilCompleto && r.importados > 0) {
+      <p class="mt-4 rounded-lg bg-primary-soft px-3 py-2.5 text-sm">
+        Registra tu cédula o RUC en
+        <a routerLink="/configuracion" class="font-medium text-accent hover:underline">Configuración</a>
+        para saber qué gastos están a tu nombre.
+      </p>
+    }
+
+    @if (r.importados > 0) {
+      <div class="mt-5 flex flex-wrap gap-3">
+        <a routerLink="/gastos" [queryParams]="{ categoria: 'SinCategoria' }" class="btn btn-primary">Categorizar lo nuevo</a>
+        <a routerLink="/gastos" class="btn btn-secondary">Ver mis gastos</a>
+      </div>
+    }
+
+    @if (problemas().length) {
+      <h3 class="mt-6 text-sm font-semibold">Comprobantes con observaciones</h3>
+      <p class="mt-1 text-sm text-muted-fg">
+        "Error" suele ser una falla temporal del SRI: vuelve a importar el mismo archivo más tarde.
+      </p>
+      <ul class="mt-3 divide-y divide-border rounded-lg border border-border">
+        @for (c of problemas(); track c.claveAcceso) {
+          <li class="flex flex-col gap-1 px-4 py-3 text-sm sm:flex-row sm:items-center sm:gap-4">
+            <span
+              class="inline-flex w-36 shrink-0 items-center gap-1.5 font-medium"
+              [class.text-danger]="estados[c.resultado].tono === 'error'"
+              [class.text-warning]="estados[c.resultado].tono === 'aviso'"
+              [class.text-muted-fg]="estados[c.resultado].tono === 'neutro'"
+            >
+              @switch (estados[c.resultado].tono) {
+                @case ('error') { <svg lucideCircleX class="size-4" aria-hidden="true"></svg> }
+                @case ('aviso') { <svg lucideCircleDashed class="size-4" aria-hidden="true"></svg> }
+                @default { <svg lucideCircleMinus class="size-4" aria-hidden="true"></svg> }
+              }
+              {{ estados[c.resultado].texto }}
+            </span>
+            <span class="min-w-0 flex-1">
+              <span class="block truncate font-mono text-xs text-muted-fg">{{ c.claveAcceso }}</span>
+              @if (c.detalle) {
+                <span class="block">{{ c.detalle }}</span>
+              }
+            </span>
+          </li>
+        }
+      </ul>
+    } @else if (r.importados > 0) {
+      <p class="mt-5 flex items-center gap-2 text-sm text-success">
+        <svg lucideCircleCheck class="size-4" aria-hidden="true"></svg> Todos los comprobantes nuevos fueron verificados y guardados.
+      </p>
+    }
+  </section>
+}

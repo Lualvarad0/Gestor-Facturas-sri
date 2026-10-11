@@ -1,0 +1,52 @@
+# Node (para Angular)
+node_modules/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+# Node (para Angular)
+node_modules/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Angular (incluyendo Angular 16)
+.angular/
+.idea/
+.sass-cache/
+coverage/
+.vscode/
+src/environments/*.ts
+*.log
+*.lock
+*.tsbuildinfo
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.csproj.user
+*.dbmdl
+*.jfm
+*.pdb
+*.publishsettings
+
+# ASP.NET Core
+appsettings.*.json
+.vscode/
+.vs/
+project.lock.json
+project.fragment.lock.json
+
+# Configuración específica para Visual Studio o Visual Studio Code
+.vscode/*
+
+# Archivos de entorno y configuración
+.env
+.env.*local
+
+# Otros archivos de sistema
+.DS_Store
+Thumbs.db

@@ -1,0 +1,90 @@
+<app-titulo linea1="Configura" linea2="tu cuenta" />
+
+<form class="card mt-6 max-w-3xl p-5 sm:p-6" [formGroup]="form" (ngSubmit)="guardar()" novalidate aria-labelledby="titulo-perfil">
+  <h2 id="titulo-perfil" class="font-semibold">Perfil tributario</h2>
+  <p class="mt-1 text-sm text-muted-fg">
+    Con tu cédula y RUC verificamos que tus gastos estén a tu nombre y dejamos fuera las facturas que tú emites.
+  </p>
+
+  <div class="mt-5 grid gap-5 sm:grid-cols-2">
+    <div>
+      <label class="field-label" for="ruc">RUC</label>
+      <input
+        id="ruc"
+        class="input font-mono"
+        formControlName="ruc"
+        inputmode="numeric"
+        autocomplete="off"
+        placeholder="13 dígitos"
+        maxlength="15"
+        [attr.aria-invalid]="rucInvalido()"
+        aria-describedby="ruc-ayuda"
+        (blur)="completarCedula()"
+      />
+      <p id="ruc-ayuda" class="mt-1.5 text-xs" [class.text-danger]="rucInvalido()" [class.text-muted-fg]="!rucInvalido()">
+        {{ rucInvalido() ? 'El RUC no es válido: 13 dígitos, terminando en tu establecimiento (001).' : '13 dígitos. Persona natural: tu cédula + 001.' }}
+      </p>
+    </div>
+    <div>
+      <label class="field-label" for="cedula">Cédula</label>
+      <input
+        id="cedula"
+        class="input font-mono"
+        formControlName="cedula"
+        inputmode="numeric"
+        autocomplete="off"
+        placeholder="10 dígitos"
+        maxlength="12"
+        [attr.aria-invalid]="cedulaInvalida()"
+        aria-describedby="cedula-ayuda"
+      />
+      <p id="cedula-ayuda" class="mt-1.5 text-xs" [class.text-danger]="cedulaInvalida()" [class.text-muted-fg]="!cedulaInvalida()">
+        {{ cedulaInvalida() ? 'La cédula no es válida. Revisa los 10 dígitos.' : 'Las facturas de tus gastos deben estar a este número o a tu RUC.' }}
+      </p>
+    </div>
+    <div class="sm:col-span-2">
+      <label class="field-label" for="razonSocial">Nombre o razón social (como consta en el RUC)</label>
+      <input id="razonSocial" class="input" formControlName="razonSocial" autocomplete="name" maxlength="300" />
+    </div>
+    <div class="sm:col-span-2">
+      <span class="field-label" id="regimen-label">Régimen</span>
+      <div class="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-labelledby="regimen-label">
+        @for (r of regimenes; track r.valor) {
+          <label
+            class="flex cursor-pointer flex-col rounded-lg border p-3 text-sm transition-colors"
+            [class]="form.controls.regimen.value === r.valor ? 'border-accent bg-primary-soft' : 'border-border hover:bg-muted'"
+          >
+            <span class="flex items-center gap-2 font-medium">
+              <input type="radio" class="size-4 accent-[var(--accent)]" formControlName="regimen" [value]="r.valor" />
+              {{ r.nombre }}
+            </span>
+            <span class="mt-1 pl-6 text-xs text-muted-fg">{{ r.descripcion }}</span>
+          </label>
+        }
+      </div>
+    </div>
+  </div>
+
+  @if (error()) {
+    <p class="aviso-error mt-5 py-3" role="alert">
+      <svg lucideCircleAlert class="mt-0.5 size-4 shrink-0 text-danger" aria-hidden="true"></svg> {{ error() }}
+    </p>
+  }
+
+  <div class="mt-6 flex items-center gap-3">
+    <button type="submit" class="btn btn-primary" [disabled]="guardando() || !perfilService.perfil()">
+      @if (guardando()) {
+        <svg lucideLoader class="size-4 animate-spin" aria-hidden="true"></svg>
+      }
+      Guardar perfil
+    </button>
+    @if (form.dirty) {
+      <span class="text-sm text-muted-fg">Tienes cambios sin guardar.</span>
+    }
+  </div>
+</form>
+
+<section class="card mt-4 max-w-3xl p-5 sm:p-6" aria-labelledby="titulo-apariencia">
+  <h2 id="titulo-apariencia" class="font-semibold">Apariencia</h2>
+  <app-segmentado class="mt-4 block" [opciones]="temas" [(valor)]="preferencias.tema" etiqueta="Tema" />
+</section>

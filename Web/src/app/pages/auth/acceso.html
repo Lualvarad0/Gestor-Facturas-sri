@@ -1,0 +1,75 @@
+<div class="relative flex min-h-dvh flex-col bg-bg px-4 py-6 sm:px-8">
+  <div class="fondo-puntos pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+    <span class="absolute -top-32 -left-24 size-[420px] animate-deriva rounded-full bg-brand/15 blur-[90px]"></span>
+    <span class="absolute -right-24 -bottom-32 size-[380px] animate-deriva rounded-full bg-success/10 blur-[90px] [animation-delay:-9s]"></span>
+  </div>
+
+  <a routerLink="/" class="relative self-start" aria-label="Ir a la página de inicio">
+    <app-marca [tamano]="30" />
+  </a>
+
+  <!-- Tarjeta doble: iniciar sesión a la izquierda, registro a la derecha y un panel que se desliza sobre el que no se usa -->
+  <div class="relative mx-auto my-8 w-full max-w-[940px] overflow-hidden rounded-3xl border border-border bg-card shadow-dashboard sm:grid sm:min-h-[640px] sm:grid-cols-2">
+    <section class="flex-col justify-center p-6 transition-opacity duration-500 sm:p-8 sm:flex lg:p-10"
+      [class]="modo() === 'login' ? 'flex opacity-100' : 'hidden opacity-0'"
+      [inert]="modo() !== 'login'" aria-label="Iniciar sesión">
+      <app-formulario-acceso modo="login" [volver]="volver()" />
+    </section>
+
+    <section class="flex-col justify-center p-6 transition-opacity duration-500 sm:p-8 sm:flex lg:p-10"
+      [class]="modo() === 'registro' ? 'flex opacity-100' : 'hidden opacity-0'"
+      [inert]="modo() !== 'registro'" aria-label="Crear cuenta">
+      <app-formulario-acceso modo="registro" />
+    </section>
+
+    <!-- Panel deslizante: viaja al lado del formulario que no se usa -->
+    <aside class="absolute inset-y-0 left-1/2 z-10 hidden w-1/2 overflow-hidden bg-ink text-white transition-transform duration-700 ease-[cubic-bezier(0.7,0,0.3,1)] sm:block"
+      [class]="modo() === 'registro' ? '-translate-x-full' : 'translate-x-0'">
+      <span class="absolute -top-20 -right-20 size-72 animate-deriva rounded-full bg-brand/45 blur-[80px]" aria-hidden="true"></span>
+      <span class="absolute -bottom-24 -left-16 size-64 animate-deriva rounded-full bg-success/25 blur-[80px] [animation-delay:-8s]" aria-hidden="true"></span>
+
+      <div class="relative flex h-full flex-col justify-between p-8 lg:p-10">
+        <p class="pildora self-start border border-white/15 bg-white/5 text-white/80">Verificado con el SRI</p>
+
+        <!-- Mensaje según el lado: entra con un fundido cuando el panel termina de viajar -->
+        <div class="relative min-h-52">
+          @for (p of paneles; track p.modo) {
+            <div class="absolute inset-0 flex flex-col justify-center transition-all duration-500"
+              [class]="modo() === p.modo ? 'translate-x-0 opacity-100 delay-300' : (p.modo === 'login' ? 'translate-x-8' : '-translate-x-8') + ' pointer-events-none opacity-0'"
+              [inert]="modo() !== p.modo">
+              <h2 class="titular text-4xl text-white">{{ p.titulo }} <em class="italic">{{ p.enfasis }}</em></h2>
+              <p class="mt-3 max-w-xs text-sm leading-relaxed text-white/65">{{ p.texto }}</p>
+              <a [routerLink]="p.ruta" class="btn mt-6 min-h-11 self-start border border-white/30 px-6 text-white hover:bg-white/10">
+                {{ p.boton }} <svg lucideArrowRight class="size-4" aria-hidden="true"></svg>
+              </a>
+            </div>
+          }
+        </div>
+
+        <!-- Mini animación: facturas que llegan solas -->
+        <div class="relative h-[132px]" aria-hidden="true">
+          @for (e of escenas; track e.titulo; let i = $index) {
+            <div class="absolute inset-x-0 animate-llegar rounded-xl border border-white/10 bg-white/[0.07] px-4 py-3 opacity-0 backdrop-blur-md"
+              [style.animation-delay.s]="i * 3" [style.top.px]="i * 44">
+              <div class="flex items-center justify-between gap-3 text-sm">
+                <span class="flex min-w-0 items-center gap-2">
+                  <svg lucideCircleCheck class="size-4 shrink-0" [class]="e.ingreso ? 'text-success' : 'text-white/70'"></svg>
+                  <span class="truncate">{{ e.titulo }}</span>
+                </span>
+                <span class="shrink-0 font-semibold" [class.text-success]="e.ingreso">{{ e.monto }}</span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="relative mx-auto flex w-full max-w-[940px] flex-wrap items-center justify-between gap-3">
+    <p class="flex items-center gap-2 text-xs text-muted-fg">
+      <svg lucideShieldCheck class="size-4 shrink-0 text-success" aria-hidden="true"></svg>
+      Cada factura se verifica con el servicio público del SRI. Nunca te pedimos tu clave de SRI en Línea.
+    </p>
+    <app-credito />
+  </div>
+</div>

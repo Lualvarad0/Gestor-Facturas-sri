@@ -1,0 +1,16 @@
+# PostgreSQL local para desarrollo: docker compose up -d
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: nudo-db
+    environment:
+      POSTGRES_DB: nudo
+      POSTGRES_USER: nudo
+      POSTGRES_PASSWORD: nudo_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - nudo-data:/var/lib/postgresql/data
+
+volumes:
+  nudo-data:
