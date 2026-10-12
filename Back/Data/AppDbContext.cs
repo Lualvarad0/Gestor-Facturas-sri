@@ -21,6 +21,7 @@ namespace Back.Data
                 e.Property(u => u.Nombre).HasMaxLength(100);
                 e.Property(u => u.Correo).HasMaxLength(150);
                 e.Property(u => u.Rol).HasMaxLength(20);
+                e.Property(u => u.ResetTokenHash).HasMaxLength(64);
                 e.Property(u => u.Cedula).HasMaxLength(10);
                 e.Property(u => u.Ruc).HasMaxLength(13);
                 e.Property(u => u.RazonSocial).HasMaxLength(300);

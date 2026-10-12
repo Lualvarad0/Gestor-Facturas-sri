@@ -2,6 +2,8 @@ import { Routes } from '@angular/router';
 import { authGuard, invitadoGuard } from './core/auth';
 
 export const routes: Routes = [
+  { path: 'recuperar', title: 'Recuperar cuenta · Nudo', loadComponent: () => import('./pages/auth/recuperacion').then(m => m.Recuperacion) },
+  { path: 'restablecer', title: 'Restablecer contraseña · Nudo', data: { restablecer: true }, loadComponent: () => import('./pages/auth/recuperacion').then(m => m.Recuperacion) },
   {
     // /login y /registro son la misma ruta para que el panel de acceso se deslice sin recrear la página.
     matcher: (url) =>
@@ -15,7 +17,8 @@ export const routes: Routes = [
     loadComponent: () => import('./layout/shell').then((m) => m.Shell),
     canActivate: [authGuard],
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'gastos' },
+      { path: '', pathMatch: 'full', redirectTo: 'resumen' },
+      { path: 'resumen', title: 'Panel de gastos · Nudo', loadComponent: () => import('./pages/resumen/resumen').then((m) => m.ResumenPagina) },
       { path: 'gastos', title: 'Gastos · Nudo', loadComponent: () => import('./pages/gastos/gastos').then((m) => m.Gastos) },
       { path: 'gastos/:id', redirectTo: 'comprobantes/:id' },
       { path: 'comprobantes/:id', title: 'Comprobante · Nudo', loadComponent: () => import('./pages/comprobante/comprobante').then((m) => m.ComprobantePagina) },

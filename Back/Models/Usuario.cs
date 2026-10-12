@@ -6,6 +6,11 @@ namespace Back.Models
         public string Nombre { get; set; } = string.Empty;
         public string Correo { get; set; } = string.Empty;
         public string PasswordHash { get; set; } = string.Empty;
+        public string? ResetTokenHash { get; set; }
+        public DateTime? ResetExpiresAt { get; set; }
+        public DateTime? ResetRequestedAt { get; set; }
+        public int FailedLoginAttempts { get; set; }
+        public DateTime? LockoutUntil { get; set; }
         public string Rol { get; set; } = Roles.User;
         public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
 

@@ -6,6 +6,7 @@ import { map } from 'rxjs';
 import { LucideCircleCheck, LucideEye, LucideEyeOff, LucideLoader } from '@lucide/angular';
 import { AuthService } from '../../core/auth';
 import { mensajeDeError } from '../../core/estado';
+import { matchingPasswords, securePassword } from '../../shared/password';
 
 export type ModoAcceso = 'login' | 'registro';
 
@@ -68,7 +69,7 @@ export type ModoAcceso = 'login' | 'registro';
           </button>
         </div>
         @if (invalido('password')) {
-          <p [id]="id('password-error')" class="field-error">{{ registro() ? 'Usa al menos 8 caracteres.' : 'Escribe tu contraseña.' }}</p>
+          <p [id]="id('password-error')" class="field-error">{{ registro() ? 'Usa entre 15 y 128 caracteres y evita contraseñas comunes.' : 'Escribe tu contraseña.' }}</p>
         }
 
         @if (registro()) {
@@ -79,7 +80,7 @@ export type ModoAcceso = 'login' | 'registro';
                   [class]="i > fuerza() ? 'bg-muted' : fuerza() <= 1 ? 'bg-danger' : fuerza() === 2 ? 'bg-warning' : 'bg-success'"></span>
               }
             </div>
-            <p class="mt-2 text-xs text-muted-fg">Seguridad: <span class="font-medium text-fg">{{ etiquetaFuerza() }}</span></p>
+            <p class="mt-2 text-xs text-muted-fg">Requisitos: <span class="font-medium text-fg">{{ fuerza() }}/4</span>. Usa una frase única que no hayas usado en otra cuenta.</p>
             <ul class="mt-1.5 grid grid-cols-2 gap-1 text-xs">
               @for (r of requisitos(); track r.texto) {
                 <li class="flex items-center gap-1.5" [class.text-success]="r.ok" [class.text-muted-fg]="!r.ok">
@@ -91,6 +92,13 @@ export type ModoAcceso = 'login' | 'registro';
         }
       </div>
 
+      @if (registro()) {
+        <div><label class="field-label" [attr.for]="id('confirmacion')">Confirma tu contraseña</label><input [id]="id('confirmacion')" type="password" class="input min-h-11" formControlName="confirmacion" autocomplete="new-password" [attr.aria-invalid]="form.hasError('passwordMismatch') && enviado()" />
+        @if (form.hasError('passwordMismatch') && enviado()) { <p class="field-error" role="alert">Las contraseñas no coinciden.</p> }
+        </div>
+      } @else {
+        <a routerLink="/recuperar" class="block text-right text-sm text-primary hover:underline">Olvidé mi contraseña</a>
+      }
       <button type="submit" class="btn btn-primary min-h-11 w-full" [disabled]="enviando()">
         @if (enviando()) {
           <svg lucideLoader class="size-4 animate-spin" aria-hidden="true"></svg>
@@ -127,8 +135,9 @@ export class FormularioAcceso implements OnInit {
 
   protected readonly form = this.fb.group({
     nombre: [''],
-    email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required]],
+    email: ['', [Validators.required, Validators.email, Validators.maxLength(150)]],
+    password: ['', [Validators.required, Validators.maxLength(128)]],
+    confirmacion: [''],
   });
 
   private readonly clave = toSignal(this.form.controls.password.valueChanges.pipe(map((v) => v ?? '')), { initialValue: '' });
@@ -137,19 +146,21 @@ export class FormularioAcceso implements OnInit {
   protected readonly requisitos = computed(() => {
     const c = this.clave();
     return [
-      { texto: '8 caracteres o más', ok: c.length >= 8 },
-      { texto: 'Una mayúscula', ok: /[A-ZÁÉÍÓÚÑ]/.test(c) },
-      { texto: 'Un número', ok: /\d/.test(c) },
-      { texto: 'Un símbolo', ok: /[^A-Za-z0-9ÁÉÍÓÚÑáéíóúñ]/.test(c) },
+      { texto: '15 caracteres o más', ok: c.length >= 15 },
+      { texto: 'Hasta 128 caracteres', ok: c.length > 0 && c.length <= 128 },
+      { texto: 'Frase no vacía', ok: c.trim().length > 0 },
+      { texto: 'Evita claves comunes', ok: c.length > 0 && !['123456789012345', 'passwordpassword', 'contraseñacontraseña'].includes(c.toLowerCase()) },
     ];
   });
   protected readonly fuerza = computed(() => this.requisitos().filter((r) => r.ok).length);
-  protected readonly etiquetaFuerza = computed(() => ['Muy débil', 'Débil', 'Aceptable', 'Buena', 'Fuerte'][this.fuerza()]);
 
   ngOnInit(): void {
     if (this.registro()) {
-      this.form.controls.nombre.addValidators([Validators.required, Validators.minLength(2)]);
-      this.form.controls.password.addValidators(Validators.minLength(8));
+      this.form.controls.nombre.addValidators([Validators.required, Validators.minLength(2), Validators.maxLength(100), Validators.pattern(/\S/)]);
+      this.form.controls.password.addValidators(securePassword);
+      this.form.controls.confirmacion.addValidators(Validators.required);
+      this.form.addValidators(matchingPasswords);
+      this.form.controls.confirmacion.updateValueAndValidity();
       this.form.controls.nombre.updateValueAndValidity();
       this.form.controls.password.updateValueAndValidity();
     }
@@ -166,8 +177,10 @@ export class FormularioAcceso implements OnInit {
   }
 
   protected enviar(): void {
+    if (this.enviando()) return;
     this.enviado.set(true);
     this.error.set(null);
+    this.form.markAllAsTouched();
     if (this.form.invalid) return;
 
     const { nombre, email, password } = this.form.getRawValue();
@@ -178,7 +191,7 @@ export class FormularioAcceso implements OnInit {
     this.enviando.set(true);
     peticion.subscribe({
       next: () => {
-        const destino = this.volver()?.startsWith('/') ? this.volver()! : '/gastos';
+        const destino = this.volver()?.startsWith('/') ? this.volver()! : '/resumen';
         void this.router.navigateByUrl(this.registro() ? '/importar' : destino);
       },
       error: (e) => {

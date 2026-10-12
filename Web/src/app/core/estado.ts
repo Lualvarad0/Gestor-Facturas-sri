@@ -7,12 +7,23 @@ export function nombreMes(mes: number): string {
   return MESES[mes - 1] ?? '';
 }
 
-/** Mes de trabajo: la versión gratuita ordena las facturas del mes en curso. */
+/** Período compartido por el panel y las facturas. */
 @Injectable({ providedIn: 'root' })
 export class PeriodoService {
   private readonly hoy = new Date();
-  readonly anio = signal(this.hoy.getFullYear()).asReadonly();
-  readonly mes = signal(this.hoy.getMonth() + 1).asReadonly();
+  private readonly anioActual = signal(this.hoy.getFullYear());
+  private readonly mesActual = signal(this.hoy.getMonth() + 1);
+  readonly anio = this.anioActual.asReadonly();
+  readonly mes = this.mesActual.asReadonly();
+  readonly valor = computed(() => `${this.anio()}-${String(this.mes()).padStart(2, '0')}`);
+
+  seleccionar(valor: string): void {
+    if (!/^\d{4}-\d{2}$/.test(valor)) return;
+    const [anio, mes] = valor.split('-').map(Number);
+    if (anio < 2000 || anio > 2100 || mes < 1 || mes > 12) return;
+    this.anioActual.set(anio);
+    this.mesActual.set(mes);
+  }
 
   readonly etiqueta = computed(() => `${capitalizar(nombreMes(this.mes()))} ${this.anio()}`);
 }
