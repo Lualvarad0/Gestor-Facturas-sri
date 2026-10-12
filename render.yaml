@@ -1,0 +1,20 @@
+# Blueprint de Render: API .NET en Docker. Los secretos se cargan en el panel, nunca aquí.
+services:
+  - type: web
+    name: nudo
+    runtime: docker
+    plan: free
+    region: virginia
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: ConnectionStrings__Default
+        sync: false
+      - key: Jwt__Key
+        generateValue: true
+      - key: Database__MigrateOnStartup
+        value: "true"
+      - key: ForwardedHeaders__Enabled
+        value: "true"
+      - key: PORT
+        value: "8080"

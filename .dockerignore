@@ -1,0 +1,8 @@
+.git
+**/bin
+**/obj
+**/node_modules
+Web/dist
+Web/.angular
+Back.Tests
+Web/src/environments/*.ts
