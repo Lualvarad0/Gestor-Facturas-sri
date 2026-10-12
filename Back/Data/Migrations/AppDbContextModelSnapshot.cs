@@ -308,9 +308,17 @@ namespace Back.Data.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("enfermedad_catastrofica");
 
+                    b.Property<int>("FailedLoginAttempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("failed_login_attempts");
+
                     b.Property<DateTime>("FechaCreacion")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("fecha_creacion");
+
+                    b.Property<DateTime?>("LockoutUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lockout_until");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
@@ -332,6 +340,19 @@ namespace Back.Data.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)")
                         .HasColumnName("regimen");
+
+                    b.Property<DateTime?>("ResetExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reset_expires_at");
+
+                    b.Property<DateTime?>("ResetRequestedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reset_requested_at");
+
+                    b.Property<string>("ResetTokenHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("reset_token_hash");
 
                     b.Property<string>("Rol")
                         .IsRequired()

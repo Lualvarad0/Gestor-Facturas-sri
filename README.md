@@ -64,6 +64,26 @@ dotnet test Back.Tests
 
 Crean y borran su propia base `nudo_test`. Para usar otro servidor, define `NUDO_TEST_DB` (por ejemplo `Host=localhost;Port=5432;Username=nudo;Password=nudo_dev`).
 
+## Cuentas y recuperación de contraseña
+
+El acceso incluye login, registro y recuperación (`/recuperar` y `/restablecer`). Las nuevas contraseñas usan PBKDF2-SHA256 con sal aleatoria y 600.000 iteraciones. Se aceptan frases de 15 a 128 caracteres; el login mantiene compatibilidad con las cuentas BCrypt existentes y actualiza su hash tras un inicio de sesión correcto. Las cuentas públicas siempre reciben el rol `user`.
+
+La API limita a 10 solicitudes de autenticación por minuto y dirección IP. Después de cinco claves incorrectas, bloquea el acceso a esa cuenta durante 15 minutos. La recuperación responde igual para correos registrados y desconocidos y admite un envío por cuenta cada dos minutos. Cada enlace contiene 256 bits aleatorios, vence a los 15 minutos, se almacena únicamente como hash y se consume mediante una actualización atómica. Cambiar la contraseña revoca los JWT anteriores. Las sesiones antiguas del navegador deberán iniciar sesión otra vez después de esta actualización.
+
+Para activar el envío, configura `RecoveryMail:Host`, `Port` (587 con STARTTLS), `Username`, `Password`, `From` y `FrontendUrl`. Usa secretos del servidor o variables `RecoveryMail__...`, nunca credenciales en archivos versionados. `FrontendUrl` debe ser la URL HTTPS real del frontend; HTTP localhost solo se admite en desarrollo. Si falta la configuración, la API devuelve 503 y la pantalla informa que la recuperación no está disponible. El SMTP debe permitir STARTTLS; esta implementación no usa el puerto 465 con TLS implícito.
+
+Aplica la migración `SeguridadAcceso` antes de servir solicitudes (`dotnet ef database update --project Back`). No cambia ni elimina contraseñas o facturas existentes. La nueva validación de sesiones consulta el sello de contraseña del usuario en cada solicitud protegida.
+
+En producción, sirve frontend y API con HTTPS, restringe `Cors:Origins` y `AllowedHosts`, y configura el proxy de confianza para HTTPS y direcciones IP antes de publicar. Los límites IP son por instancia; varios servidores requieren un límite compartido en el proxy. La sesión del frontend se conserva en `sessionStorage`, que sigue siendo accesible al JavaScript del mismo origen: la protección frente a XSS y una política CSP del servidor web siguen siendo necesarias. El servicio de correo usa una cola acotada en memoria; un reinicio puede perder correos pendientes, por lo que un despliegue con requisitos de entrega garantizada debe usar una cola persistente. No incluye MFA ni verificación de correo.
+
+Pruebas de seguridad sin PostgreSQL:
+
+```bash
+dotnet test Back.Tests --filter "FullyQualifiedName~AuthSecurityTests|FullyQualifiedName~AuthEndpointTests"
+```
+
+Las pruebas de integración `Recuperacion_*` y `Login_Bloquea*` necesitan el PostgreSQL de pruebas indicado arriba. Comprueban consumo concurrente del enlace, caducidad, respuestas genéricas, bloqueo y revocación de sesiones; el envío SMTP real requiere configurar el proveedor.
+
 ## Cómo descargar el reporte del SRI
 
 1. Ingresa a **SRI en Línea** con tu RUC o cédula.

@@ -4,6 +4,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs';
 import {
   LucideFileUp,
+  LucideLayoutDashboard,
   LucideLogOut,
   LucideMenu,
   LucideMoon,
@@ -24,7 +25,7 @@ import { Credito, Marca } from '../shared/marca';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     RouterOutlet, RouterLink, RouterLinkActive, Avisos, Marca, Credito,
-    LucideReceipt, LucideFileUp, LucideStore, LucideSettings, LucideLogOut, LucideMenu, LucideX, LucideMoon, LucideSun,
+    LucideLayoutDashboard, LucideReceipt, LucideFileUp, LucideStore, LucideSettings, LucideLogOut, LucideMenu, LucideX, LucideMoon, LucideSun,
   ],
   templateUrl: './shell.html',
 })

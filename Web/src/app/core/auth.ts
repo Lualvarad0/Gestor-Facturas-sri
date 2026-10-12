@@ -44,9 +44,18 @@ export class AuthService {
       .pipe(tap((r) => this.guardar(r)));
   }
 
+  recuperar(email: string): Observable<{ mensaje: string }> {
+    return this.http.post<{ mensaje: string }>(`${environment.apiUrl}/auth/forgot-password`, { email });
+  }
+
+  restablecer(email: string, token: string, password: string): Observable<{ mensaje: string }> {
+    return this.http.post<{ mensaje: string }>(`${environment.apiUrl}/auth/reset-password`, { email, token, password });
+  }
+
   cerrarSesion(redirigir = true): void {
     this.sesion.set(null);
     try {
+      sessionStorage.removeItem(CLAVE_SESION);
       localStorage.removeItem(CLAVE_SESION);
     } catch {
       /* almacenamiento no disponible */
@@ -58,7 +67,7 @@ export class AuthService {
     const sesion: Sesion = { token: r.token, expiraEn: r.expiraEn, usuario: r.usuario };
     this.sesion.set(sesion);
     try {
-      localStorage.setItem(CLAVE_SESION, JSON.stringify(sesion));
+      sessionStorage.setItem(CLAVE_SESION, JSON.stringify(sesion));
     } catch {
       /* la sesión sigue en memoria */
     }
@@ -67,7 +76,8 @@ export class AuthService {
 
 function leerSesion(): Sesion | null {
   try {
-    const crudo = localStorage.getItem(CLAVE_SESION);
+    localStorage.removeItem(CLAVE_SESION);
+    const crudo = sessionStorage.getItem(CLAVE_SESION);
     return crudo ? (JSON.parse(crudo) as Sesion) : null;
   } catch {
     return null;
@@ -99,5 +109,5 @@ export const authGuard: CanActivateFn = (_route, state) => {
 
 export const invitadoGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
-  return auth.estaAutenticado() ? inject(Router).createUrlTree(['/gastos']) : true;
+  return auth.estaAutenticado() ? inject(Router).createUrlTree(['/resumen']) : true;
 };

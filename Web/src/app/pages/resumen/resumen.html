@@ -1,0 +1,63 @@
+<app-titulo linea1="Tus gastos," linea2="bajo control." [subtitulo]="'Una visión de tus facturas en ' + periodo.etiqueta() + '. Valores netos de notas de crédito.'">
+  <a routerLink="/importar" class="btn btn-acento">+ Importar facturas</a>
+</app-titulo>
+
+<app-error-carga [mensaje]="carga().error" />
+@if (carga().error) {
+  <button class="btn btn-secondary mt-3" (click)="reintentar()">Volver a intentar</button>
+}
+@if (carga().cargando) {
+  <p role="status" class="mt-6 text-sm text-muted-fg">Actualizando tu resumen…</p>
+}
+
+@if (resumen(); as r) {
+  <section class="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Resumen del período" [attr.aria-busy]="carga().cargando">
+    <article class="card metric-principal p-5"><p class="text-sm opacity-80">Gasto total</p><p class="mt-4 text-3xl font-semibold tracking-tight money">{{ r.total | dinero }}</p><p class="mt-3 text-xs opacity-75">{{ r.comprobantes }} comprobantes recibidos</p></article>
+    <article class="card p-5"><p class="etiqueta">IVA en tus facturas</p><p class="mt-4 text-3xl font-semibold tracking-tight money">{{ r.iva | dinero }}</p><p class="mt-3 text-xs text-muted-fg">Incluido en el gasto total</p></article>
+    <article class="card p-5"><p class="etiqueta">Gasto clasificado como deducible</p><p class="mt-4 text-3xl font-semibold tracking-tight money">{{ r.totalDeducible | dinero }}</p><p class="mt-3 text-xs text-muted-fg">Según categorías; no es una rebaja calculada</p></article>
+    <article class="card p-5"><p class="etiqueta">Promedio por comprobante</p><p class="mt-4 text-3xl font-semibold tracking-tight money">{{ promedio() | dinero }}</p><p class="mt-3 text-xs text-muted-fg">Total neto / comprobantes</p></article>
+  </section>
+
+  <div class="mt-6 grid gap-6 xl:grid-cols-[1.45fr_1fr]">
+    <section class="card p-5 sm:p-6">
+      <div class="flex items-center justify-between"><h2 class="font-semibold">Evolución de tus gastos</h2><span class="text-xs text-muted-fg">{{ periodo.anio() }} · USD</span></div>
+      <p class="mt-1 text-sm text-muted-fg">Selecciona un mes para consultar sus facturas.</p>
+      <div class="expense-chart mt-8" aria-label="Gasto neto por mes">
+        @for (m of meses(); track m.mes) {
+          <button type="button" class="chart-column" [class.seleccionado]="m.mes === periodo.mes()" [attr.aria-pressed]="m.mes === periodo.mes()" [attr.aria-label]="m.nombre + ': ' + (m.total | dinero)" [title]="m.total | dinero" (click)="seleccionarMes(m.mes)">
+            <span class="chart-track"><span class="chart-bar" [style.height.%]="m.altura" [class.negativo]="m.total < 0"></span></span><span class="mt-3 text-[10px] sm:text-xs">{{ m.nombre }}</span>
+          </button>
+        }
+      </div>
+      <p class="mt-5 text-xs text-muted-fg">Total del año: <strong class="text-fg">{{ carga().datos?.anual?.total | dinero }}</strong>. Las barras ámbar indican un saldo neto negativo.</p>
+    </section>
+    <section class="card p-5 sm:p-6">
+      <div class="flex items-center justify-between gap-3"><h2 class="font-semibold">¿En qué estás gastando?</h2><a routerLink="/gastos" class="text-xs text-primary hover:underline">Ver facturas →</a></div>
+      <div class="mt-6 space-y-4">
+        @for (c of categorias(); track c.valor) {
+          <a routerLink="/gastos" [queryParams]="{ categoria: c.valor }" class="block rounded-md hover:bg-muted">
+            <div class="flex justify-between gap-3 text-sm"><span>{{ c.nombre }}</span><span class="money font-medium">{{ c.total | dinero }}</span></div>
+            <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"><div class="h-full rounded-full" [style.background]="c.color" [style.width.%]="(c.total < 0 ? -c.total : c.total) / baseCategorias() * 100"></div></div>
+          </a>
+        } @empty { <p class="text-sm text-muted-fg">Las categorías aparecerán cuando importes tus facturas.</p> }
+      </div>
+    </section>
+    <section class="card p-5 sm:p-6">
+      <h2 class="font-semibold">Tus principales proveedores</h2>
+      <div class="mt-4 divide-y divide-border">
+        @for (p of r.principalesProveedores; track p.identificacion) {
+          <a routerLink="/gastos" [queryParams]="{ ruc: p.identificacion }" class="flex items-center gap-3 py-4 hover:text-primary"><span class="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary font-semibold">{{ p.razonSocial.charAt(0) }}</span><span class="min-w-0 flex-1"><span class="block truncate text-sm font-medium">{{ p.razonSocial }}</span><span class="text-xs text-muted-fg">{{ p.comprobantes }} comprobantes</span></span><span class="money text-sm font-semibold">{{ p.total | dinero }}</span></a>
+        } @empty { <p class="py-5 text-sm text-muted-fg">Todavía no tienes proveedores en este período.</p> }
+      </div>
+    </section>
+    <section class="card p-5 sm:p-6">
+      <h2 class="font-semibold">Tu próxima revisión</h2>
+      <a routerLink="/gastos" [queryParams]="{ categoria: 'SinCategoria' }" class="mt-5 flex items-center justify-between rounded-xl bg-muted p-4 text-sm"><span>Comprobantes sin categoría</span><strong>{{ r.sinCategoria }} →</strong></a>
+      <a routerLink="/gastos" [queryParams]="{ ajenos: true }" class="mt-3 flex items-center justify-between rounded-xl bg-muted p-4 text-sm"><span>Comprobantes a nombre de otros</span><strong>{{ r.aNombreDeOtros }} →</strong></a>
+      <div class="mt-5 border-t border-border pt-5"><p class="text-sm font-semibold">Facturas y SRI</p><p class="mt-2 text-sm leading-relaxed text-muted-fg">Importa el reporte TXT, archivos XML o claves de acceso. El sistema consulta la autorización de cada comprobante con el SRI. La descarga desde tu cuenta en SRI en Línea es manual.</p><a routerLink="/importar" class="btn btn-secondary mt-4">Importar y verificar</a></div>
+    </section>
+  </div>
+  @if (!r.comprobantes) {
+    <div class="mt-6 rounded-xl border border-primary/20 bg-primary-soft p-5"><p class="font-medium">Comienza con tus facturas de {{ periodo.etiqueta() }}</p><p class="mt-1 text-sm text-muted-fg">Importa tus comprobantes o selecciona otro período en la parte superior.</p></div>
+  }
+}

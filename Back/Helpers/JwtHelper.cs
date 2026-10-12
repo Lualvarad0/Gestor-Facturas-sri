@@ -30,6 +30,7 @@ namespace Back.Helpers
                 new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new(ClaimTypes.Name, usuario.Nombre),
                 new(ClaimTypes.Role, usuario.Rol),
+                new("pwd", PasswordSecurity.Fingerprint(usuario.PasswordHash)),
             };
 
             var token = new JwtSecurityToken(

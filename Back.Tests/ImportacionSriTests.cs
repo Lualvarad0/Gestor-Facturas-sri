@@ -12,6 +12,10 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
+using Back.Services;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.Builder;
+using System.Threading.RateLimiting;
 
 namespace Back.Tests
 {
@@ -48,6 +52,7 @@ namespace Back.Tests
         private const string BaseDatos = "nudo_test";
 
         public FakeSriHandler Sri { get; } = new();
+        public FakeRecoveryMail Recovery { get; } = new();
 
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
@@ -57,7 +62,12 @@ namespace Back.Tests
             builder.UseSetting("Database:MigrateOnStartup", "true");
             builder.UseSetting("Sri:Reintentos", "2");
             builder.ConfigureServices(services =>
-                services.AddHttpClient<SriAutorizacionClient>().ConfigurePrimaryHttpMessageHandler(() => Sri));
+            {
+                services.AddHttpClient<SriAutorizacionClient>().ConfigurePrimaryHttpMessageHandler(() => Sri);
+                services.AddSingleton<IRecoveryMail>(Recovery);
+                // Los límites HTTP se prueban por separado en AuthEndpointTests.
+                services.AddRateLimiter(options => options.AddPolicy("auth", _ => RateLimitPartition.GetNoLimiter("integration")));
+            });
         }
 
         public async Task InitializeAsync()
@@ -86,7 +96,7 @@ namespace Back.Tests
         private async Task<HttpClient> ClienteAutenticadoAsync(string correo)
         {
             var http = _factory.CreateClient();
-            var registro = await http.PostAsJsonAsync("/api/auth/register", new { username = "Usuario", email = correo, password = "Secreta123" });
+            var registro = await http.PostAsJsonAsync("/api/auth/register", new { username = "Usuario", email = correo, password = "Mi frase secreta 123" });
             registro.EnsureSuccessStatusCode();
             var auth = await registro.Content.ReadFromJsonAsync<AuthResponse>(Json);
             http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth!.Token);

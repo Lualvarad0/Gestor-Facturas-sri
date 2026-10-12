@@ -10,6 +10,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.Threading.RateLimiting;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,6 +26,26 @@ builder.Services.AddDbContext<AppDbContext>(options => options
 // Repositorios y servicios
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddOptions<RecoveryMailOptions>().Bind(builder.Configuration.GetSection("RecoveryMail"))
+    .Validate(o => !o.Configured || (Uri.TryCreate(o.FrontendUrl, UriKind.Absolute, out var uri)
+        && (uri.Scheme == "https" || (builder.Environment.IsDevelopment() && uri.IsLoopback && uri.Scheme == "http")))
+        && o.Port is > 0 and <= 65535, "RecoveryMail:FrontendUrl debe ser HTTPS (HTTP local solo en desarrollo).")
+    .ValidateOnStart();
+builder.Services.AddSingleton<RecoveryMail>();
+builder.Services.AddSingleton<IRecoveryMail>(sp => sp.GetRequiredService<RecoveryMail>());
+builder.Services.AddHostedService(sp => sp.GetRequiredService<RecoveryMail>());
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("auth", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+    options.OnRejected = async (context, ct) =>
+    {
+        context.HttpContext.Response.Headers.RetryAfter = "60";
+        await context.HttpContext.Response.WriteAsJsonAsync(new { detail = "Demasiados intentos. Espera un minuto e inténtalo de nuevo." }, ct);
+    };
+});
 builder.Services.AddScoped<IComprobanteRepository, ComprobanteRepository>();
 builder.Services.AddScoped<ComprobanteService>();
 builder.Services.AddScoped<PerfilService>();
@@ -51,7 +73,21 @@ builder.Services
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = jwtOptions.SigningKey(),
             ValidateLifetime = true,
+            ValidAlgorithms = new[] { SecurityAlgorithms.HmacSha256 },
             ClockSkew = TimeSpan.FromMinutes(1),
+        };
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var idValue = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (!int.TryParse(idValue, out var id)) { context.Fail("Sesión inválida."); return; }
+                var db = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
+                var hash = await db.Usuarios.Where(u => u.Id == id).Select(u => u.PasswordHash)
+                    .FirstOrDefaultAsync(context.HttpContext.RequestAborted);
+                if (hash is null || context.Principal?.FindFirstValue("pwd") != PasswordSecurity.Fingerprint(hash))
+                    context.Fail("Sesión revocada.");
+            },
         };
     });
 builder.Services.AddAuthorization();
@@ -107,7 +143,22 @@ if (app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
     await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
 }
 
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+    app.UseHttpsRedirection();
+}
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    context.Response.Headers["Referrer-Policy"] = "no-referrer";
+    context.Response.Headers["X-Frame-Options"] = "DENY";
+    context.Response.Headers["Cache-Control"] = "no-store";
+    await next();
+});
+app.UseRouting();
 app.UseCors();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
