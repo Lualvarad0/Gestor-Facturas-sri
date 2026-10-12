@@ -3,7 +3,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { Observable, catchError, tap, throwError } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { AuthResponse, Usuario } from './models';
+import { AuthResponse, RegistroRequest, Usuario } from './models';
 
 const CLAVE_SESION = 'sesion';
 
@@ -38,9 +38,9 @@ export class AuthService {
       .pipe(tap((r) => this.guardar(r)));
   }
 
-  registrar(nombre: string, email: string, password: string): Observable<AuthResponse> {
+  registrar(datos: RegistroRequest): Observable<AuthResponse> {
     return this.http
-      .post<AuthResponse>(`${environment.apiUrl}/auth/register`, { username: nombre, email, password })
+      .post<AuthResponse>(`${environment.apiUrl}/auth/register`, datos)
       .pipe(tap((r) => this.guardar(r)));
   }
 

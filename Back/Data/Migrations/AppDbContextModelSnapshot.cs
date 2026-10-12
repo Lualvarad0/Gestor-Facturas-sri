@@ -280,6 +280,80 @@ namespace Back.Data.Migrations
                     b.ToTable("proveedores_categoria", (string)null);
                 });
 
+            modelBuilder.Entity("Back.Models.ProveedorRubro", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("RubroId")
+                        .HasColumnType("integer")
+                        .HasColumnName("rubro_id");
+
+                    b.Property<string>("Ruc")
+                        .IsRequired()
+                        .HasMaxLength(13)
+                        .HasColumnType("character varying(13)")
+                        .HasColumnName("ruc");
+
+                    b.Property<int>("UsuarioId")
+                        .HasColumnType("integer")
+                        .HasColumnName("usuario_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_proveedores_rubro");
+
+                    b.HasIndex("RubroId")
+                        .HasDatabaseName("ix_proveedores_rubro_rubro_id");
+
+                    b.HasIndex("UsuarioId", "Ruc")
+                        .IsUnique()
+                        .HasDatabaseName("ix_proveedores_rubro_usuario_id_ruc");
+
+                    b.ToTable("proveedores_rubro", (string)null);
+                });
+
+            modelBuilder.Entity("Back.Models.Rubro", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Limite")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("limite");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("nombre");
+
+                    b.Property<int>("Orden")
+                        .HasColumnType("integer")
+                        .HasColumnName("orden");
+
+                    b.Property<int>("UsuarioId")
+                        .HasColumnType("integer")
+                        .HasColumnName("usuario_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_rubros");
+
+                    b.HasIndex("UsuarioId", "Nombre")
+                        .IsUnique()
+                        .HasDatabaseName("ix_rubros_usuario_id_nombre");
+
+                    b.ToTable("rubros", (string)null);
+                });
+
             modelBuilder.Entity("Back.Models.Usuario", b =>
                 {
                     b.Property<int>("Id")
@@ -288,6 +362,12 @@ namespace Back.Data.Migrations
                         .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Apellidos")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("apellidos");
 
                     b.Property<int>("CargasFamiliares")
                         .HasColumnType("integer")
@@ -316,15 +396,30 @@ namespace Back.Data.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("fecha_creacion");
 
+                    b.Property<DateOnly?>("FechaNacimiento")
+                        .HasColumnType("date")
+                        .HasColumnName("fecha_nacimiento");
+
+                    b.Property<decimal?>("IngresoMensual")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("ingreso_mensual");
+
                     b.Property<DateTime?>("LockoutUntil")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("lockout_until");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
+                        .HasMaxLength(121)
+                        .HasColumnType("character varying(121)")
                         .HasColumnName("nombre");
+
+                    b.Property<string>("Nombres")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("nombres");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
@@ -415,6 +510,33 @@ namespace Back.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_proveedores_categoria_usuarios_usuario_id");
+                });
+
+            modelBuilder.Entity("Back.Models.ProveedorRubro", b =>
+                {
+                    b.HasOne("Back.Models.Rubro", null)
+                        .WithMany()
+                        .HasForeignKey("RubroId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_proveedores_rubro_rubros_rubro_id");
+
+                    b.HasOne("Back.Models.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_proveedores_rubro_usuarios_usuario_id");
+                });
+
+            modelBuilder.Entity("Back.Models.Rubro", b =>
+                {
+                    b.HasOne("Back.Models.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_rubros_usuarios_usuario_id");
                 });
 
             modelBuilder.Entity("Back.Models.Comprobante", b =>

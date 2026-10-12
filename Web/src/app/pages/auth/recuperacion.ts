@@ -1,15 +1,17 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth';
 import { mensajeDeError } from '../../core/estado';
+import { CoincidenciaClaves } from '../../shared/coincidencia-claves';
 import { Marca } from '../../shared/marca';
 import { matchingPasswords, securePassword } from '../../shared/password';
 
 @Component({
   selector: 'app-recuperacion',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, Marca],
+  imports: [ReactiveFormsModule, RouterLink, Marca, CoincidenciaClaves],
   template: `
     <main class="grid min-h-dvh place-items-center bg-bg px-5 py-10">
       <section class="card w-full max-w-md p-7 sm:p-9">
@@ -30,9 +32,11 @@ import { matchingPasswords, securePassword } from '../../shared/password';
             } @else {
               <div><label for="recovery-password" class="field-label">Nueva contraseña</label><input id="recovery-password" [type]="mostrar() ? 'text' : 'password'" autocomplete="new-password" class="input" formControlName="password" [attr.aria-invalid]="form.controls.password.invalid && enviado()" />
               @if (form.controls.password.invalid && enviado()) { <p class="field-error">Usa entre 15 y 128 caracteres y evita contraseñas comunes.</p> }</div>
-              <div><label for="recovery-confirm" class="field-label">Confirma la contraseña</label><input id="recovery-confirm" type="password" autocomplete="new-password" class="input" formControlName="confirmacion" />
-              @if (form.hasError('passwordMismatch') && enviado()) { <p class="field-error">Las contraseñas no coinciden.</p> }</div>
-              <button type="button" class="text-sm text-primary" [attr.aria-pressed]="mostrar()" (click)="mostrar.set(!mostrar())">{{ mostrar() ? 'Ocultar contraseña' : 'Mostrar contraseña' }}</button>
+              <div><label for="recovery-confirm" class="field-label">Confirma la contraseña</label><input id="recovery-confirm" [type]="mostrar() ? 'text' : 'password'" autocomplete="new-password" class="input" formControlName="confirmacion" aria-describedby="recovery-coincidencia" />
+              <app-coincidencia-claves id="recovery-coincidencia" [clave]="valores().password ?? ''" [confirmacion]="valores().confirmacion ?? ''" />
+              @if (form.hasError('passwordMismatch') && enviado() && !valores().confirmacion) { <p class="field-error">Confirma la contraseña.</p> }</div>
+              <p class="text-xs text-muted-fg">Debe ser distinta a tu contraseña actual y no contener tus nombres, correo ni fecha de nacimiento.</p>
+              <button type="button" class="text-sm text-primary" [attr.aria-pressed]="mostrar()" (click)="mostrar.set(!mostrar())">{{ mostrar() ? 'Ocultar contraseñas' : 'Mostrar contraseñas' }}</button>
             }
             <button type="submit" class="btn btn-acento w-full" [disabled]="enviando()">{{ enviando() ? 'Procesando…' : restablecer ? 'Guardar nueva contraseña' : 'Enviar enlace de recuperación' }}</button>
           </form>
@@ -60,6 +64,7 @@ export class Recuperacion {
     email: [this.parametros.get('email') ?? '', [Validators.required, Validators.email, Validators.maxLength(150)]],
     password: [''], confirmacion: [''],
   });
+  protected readonly valores = toSignal(this.form.valueChanges, { initialValue: this.form.getRawValue() });
 
   constructor() {
     if (this.restablecer) {

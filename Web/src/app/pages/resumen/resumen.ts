@@ -4,6 +4,7 @@ import { forkJoin } from 'rxjs';
 import { cargar } from '../../core/carga';
 import { ComprobantesService } from '../../core/comprobantes.service';
 import { nombreMes, PeriodoService } from '../../core/estado';
+import { PresupuestoService } from '../../core/presupuesto.service';
 import { categoria } from '../../core/categorias';
 import { DineroPipe } from '../../shared/formato';
 import { ErrorCarga } from '../../shared/controles';
@@ -24,6 +25,16 @@ export class ResumenPagina {
     ({ anio, mes }) => forkJoin({ mensual: this.servicio.resumen(anio, mes), anual: this.servicio.resumen(anio) }),
   );
   protected readonly resumen = computed(() => this.carga().datos?.mensual);
+  private readonly presupuestoService = inject(PresupuestoService);
+  /** Aparte del resumen: si falla, el panel de gastos sigue funcionando. */
+  protected readonly presupuesto = cargar(
+    () => ({ anio: this.periodo.anio(), mes: this.periodo.mes(), recarga: this.recarga() }),
+    ({ anio, mes }) => this.presupuestoService.obtener(anio, mes),
+  );
+  /** Rubros ordenados por cuánto del límite llevan gastado. */
+  protected readonly rubros = computed(() => (this.presupuesto().datos?.rubros ?? [])
+    .map(r => ({ ...r, avance: r.limite > 0 ? r.gastado / r.limite * 100 : r.gastado > 0 ? 100 : 0 }))
+    .sort((a, b) => b.avance - a.avance));
   protected readonly categorias = computed(() => (this.resumen()?.porCategoria ?? [])
     .map(c => ({ ...c, ...categoria(c.categoria) })).sort((a, b) => b.total - a.total));
   protected readonly baseCategorias = computed(() => Math.max(1, ...this.categorias().map(c => Math.abs(c.total))));

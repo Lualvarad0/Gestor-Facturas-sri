@@ -3,7 +3,12 @@ namespace Back.Models
     public class Usuario
     {
         public int Id { get; set; }
+        /// <summary>Nombre para mostrar: nombres y apellidos.</summary>
         public string Nombre { get; set; } = string.Empty;
+        public string Nombres { get; set; } = string.Empty;
+        /// <summary>Vacío en las cuentas creadas antes de pedir apellidos; se completa en Configuración.</summary>
+        public string Apellidos { get; set; } = string.Empty;
+        public DateOnly? FechaNacimiento { get; set; }
         public string Correo { get; set; } = string.Empty;
         public string PasswordHash { get; set; } = string.Empty;
         public string? ResetTokenHash { get; set; }
@@ -22,6 +27,11 @@ namespace Back.Models
         public RegimenTributario? Regimen { get; set; }
         public int CargasFamiliares { get; set; }
         public bool EnfermedadCatastrofica { get; set; }
+
+        // Presupuesto: ingreso aproximado del mes (los límites viven en Rubro)
+        public decimal? IngresoMensual { get; set; }
+
+        public static string NombreCompleto(string nombres, string apellidos) => $"{nombres} {apellidos}".Trim();
 
         /// <summary>Identificaciones con las que el usuario aparece como comprador en sus facturas.</summary>
         public IEnumerable<string> Identificaciones()

@@ -1,20 +1,27 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, signal } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, NonNullableFormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { map } from 'rxjs';
 import { LucideCircleCheck, LucideEye, LucideEyeOff, LucideLoader } from '@lucide/angular';
 import { AuthService } from '../../core/auth';
 import { mensajeDeError } from '../../core/estado';
-import { matchingPasswords, securePassword } from '../../shared/password';
+import { CoincidenciaClaves } from '../../shared/coincidencia-claves';
+import { contieneDatosPersonales, matchingPasswords, securePassword } from '../../shared/password';
+import { haceAnios, mayorDeEdad, nombreValido } from '../../shared/validadores';
 
 export type ModoAcceso = 'login' | 'registro';
+
+function sinDatosPersonales(form: AbstractControl): ValidationErrors | null {
+  const v = form.value as { nombres: string; apellidos: string; email: string; fechaNacimiento: string; password: string };
+  return v.password && contieneDatosPersonales(v.password, v) ? { datosPersonales: true } : null;
+}
 
 /** Formulario de inicio de sesión o de registro; la pantalla de acceso muestra uno de cada lado. */
 @Component({
   selector: 'app-formulario-acceso',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, LucideLoader, LucideEye, LucideEyeOff, LucideCircleCheck],
+  imports: [ReactiveFormsModule, RouterLink, NgTemplateOutlet, LucideLoader, LucideEye, LucideEyeOff, LucideCircleCheck, CoincidenciaClaves],
   template: `
     <h1 class="titular text-[clamp(34px,5vw,44px)]">
       {{ registro() ? 'Crea tu' : 'Inicia' }} <em class="italic">{{ registro() ? 'cuenta' : 'sesión' }}</em>
@@ -29,12 +36,31 @@ export type ModoAcceso = 'login' | 'registro';
 
     <form class="mt-6 space-y-4" [formGroup]="form" (ngSubmit)="enviar()" novalidate>
       @if (registro()) {
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label class="field-label" [attr.for]="id('nombres')">Nombres</label>
+            <input [id]="id('nombres')" class="input min-h-11" formControlName="nombres" autocomplete="given-name" maxlength="60"
+              [attr.aria-invalid]="invalido('nombres')" [attr.aria-describedby]="id('nombres-error')" />
+            @if (invalido('nombres')) {
+              <p [id]="id('nombres-error')" class="field-error">Escribe tus nombres (solo letras, mínimo 2).</p>
+            }
+          </div>
+          <div>
+            <label class="field-label" [attr.for]="id('apellidos')">Apellidos</label>
+            <input [id]="id('apellidos')" class="input min-h-11" formControlName="apellidos" autocomplete="family-name" maxlength="60"
+              [attr.aria-invalid]="invalido('apellidos')" [attr.aria-describedby]="id('apellidos-error')" />
+            @if (invalido('apellidos')) {
+              <p [id]="id('apellidos-error')" class="field-error">Escribe tus apellidos (solo letras, mínimo 2).</p>
+            }
+          </div>
+        </div>
         <div>
-          <label class="field-label" [attr.for]="id('nombre')">Nombre</label>
-          <input [id]="id('nombre')" class="input min-h-11" formControlName="nombre" autocomplete="name"
-            [attr.aria-invalid]="invalido('nombre')" [attr.aria-describedby]="id('nombre-error')" />
-          @if (invalido('nombre')) {
-            <p [id]="id('nombre-error')" class="field-error">Escribe tu nombre (mínimo 2 caracteres).</p>
+          <label class="field-label" [attr.for]="id('nacimiento')">Fecha de nacimiento</label>
+          <input [id]="id('nacimiento')" type="date" class="input min-h-11" formControlName="fechaNacimiento" autocomplete="bday"
+            [min]="fechaMinima" [max]="fechaMaxima"
+            [attr.aria-invalid]="invalido('fechaNacimiento')" [attr.aria-describedby]="id('nacimiento-error')" />
+          @if (invalido('fechaNacimiento')) {
+            <p [id]="id('nacimiento-error')" class="field-error">Debes ser mayor de 18 años. Revisa la fecha.</p>
           }
         </div>
       }
@@ -54,37 +80,29 @@ export type ModoAcceso = 'login' | 'registro';
           <input [id]="id('password')" class="input min-h-11 pr-12" formControlName="password"
             [type]="mostrarClave() ? 'text' : 'password'"
             [attr.autocomplete]="registro() ? 'new-password' : 'current-password'"
-            [attr.aria-invalid]="invalido('password')"
+            [attr.aria-invalid]="invalido('password') || (registro() && datosPersonales())"
             [attr.aria-describedby]="id('password-error') + ' ' + id('password-fuerza')" />
-          <button type="button"
-            class="absolute inset-y-0 right-0 grid w-11 cursor-pointer place-items-center rounded-r-lg text-muted-fg transition-colors hover:text-fg"
-            [attr.aria-label]="mostrarClave() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
-            [attr.aria-pressed]="mostrarClave()"
-            (click)="mostrarClave.set(!mostrarClave())">
-            @if (mostrarClave()) {
-              <svg lucideEyeOff class="size-[18px]" aria-hidden="true"></svg>
-            } @else {
-              <svg lucideEye class="size-[18px]" aria-hidden="true"></svg>
-            }
-          </button>
+          <ng-container *ngTemplateOutlet="ojo" />
         </div>
         @if (invalido('password')) {
           <p [id]="id('password-error')" class="field-error">{{ registro() ? 'Usa entre 15 y 128 caracteres y evita contraseñas comunes.' : 'Escribe tu contraseña.' }}</p>
+        } @else if (registro() && datosPersonales() && (form.controls.password.touched || enviado())) {
+          <p [id]="id('password-error')" class="field-error">No uses tus nombres, apellidos, correo ni fecha de nacimiento.</p>
         }
 
         @if (registro()) {
           <div [id]="id('password-fuerza')" class="mt-3" aria-live="polite">
             <div class="flex gap-1.5" aria-hidden="true">
-              @for (i of [1, 2, 3, 4]; track i) {
+              @for (r of requisitos(); track r.texto; let i = $index) {
                 <span class="h-1.5 flex-1 rounded-full transition-colors duration-300"
-                  [class]="i > fuerza() ? 'bg-muted' : fuerza() <= 1 ? 'bg-danger' : fuerza() === 2 ? 'bg-warning' : 'bg-success'"></span>
+                  [class]="i >= fuerza() ? 'bg-muted' : fuerza() <= 2 ? 'bg-danger' : fuerza() < requisitos().length ? 'bg-warning' : 'bg-success'"></span>
               }
             </div>
-            <p class="mt-2 text-xs text-muted-fg">Requisitos: <span class="font-medium text-fg">{{ fuerza() }}/4</span>. Usa una frase única que no hayas usado en otra cuenta.</p>
+            <p class="mt-2 text-xs text-muted-fg">Requisitos: <span class="font-medium text-fg">{{ fuerza() }}/{{ requisitos().length }}</span>. Usa una frase única que no hayas usado en otra cuenta.</p>
             <ul class="mt-1.5 grid grid-cols-2 gap-1 text-xs">
               @for (r of requisitos(); track r.texto) {
                 <li class="flex items-center gap-1.5" [class.text-success]="r.ok" [class.text-muted-fg]="!r.ok">
-                  <svg lucideCircleCheck class="size-3.5" aria-hidden="true"></svg> {{ r.texto }}
+                  <svg lucideCircleCheck class="size-3.5 shrink-0" aria-hidden="true"></svg> {{ r.texto }}
                 </li>
               }
             </ul>
@@ -93,8 +111,18 @@ export type ModoAcceso = 'login' | 'registro';
       </div>
 
       @if (registro()) {
-        <div><label class="field-label" [attr.for]="id('confirmacion')">Confirma tu contraseña</label><input [id]="id('confirmacion')" type="password" class="input min-h-11" formControlName="confirmacion" autocomplete="new-password" [attr.aria-invalid]="form.hasError('passwordMismatch') && enviado()" />
-        @if (form.hasError('passwordMismatch') && enviado()) { <p class="field-error" role="alert">Las contraseñas no coinciden.</p> }
+        <div>
+          <label class="field-label" [attr.for]="id('confirmacion')">Confirma tu contraseña</label>
+          <div class="relative">
+            <input [id]="id('confirmacion')" class="input min-h-11 pr-12" formControlName="confirmacion" autocomplete="new-password"
+              [type]="mostrarClave() ? 'text' : 'password'"
+              [attr.aria-invalid]="form.hasError('passwordMismatch') && enviado()" [attr.aria-describedby]="id('coincidencia')" />
+            <ng-container *ngTemplateOutlet="ojo" />
+          </div>
+          <app-coincidencia-claves [id]="id('coincidencia')" [clave]="valores().password ?? ''" [confirmacion]="valores().confirmacion ?? ''" />
+          @if (form.hasError('passwordMismatch') && enviado() && !valores().confirmacion) {
+            <p class="field-error" role="alert">Confirma tu contraseña.</p>
+          }
         </div>
       } @else {
         <a routerLink="/recuperar" class="block text-right text-sm text-primary hover:underline">Olvidé mi contraseña</a>
@@ -106,6 +134,21 @@ export type ModoAcceso = 'login' | 'registro';
         {{ registro() ? 'Crear cuenta' : 'Ingresar' }}
       </button>
     </form>
+
+    <!-- Un solo botón de ojo por campo; muestra u oculta ambas contraseñas para compararlas -->
+    <ng-template #ojo>
+      <button type="button"
+        class="absolute inset-y-0 right-0 grid w-11 cursor-pointer place-items-center rounded-r-lg text-muted-fg transition-colors hover:text-fg"
+        [attr.aria-label]="(mostrarClave() ? 'Ocultar ' : 'Mostrar ') + (registro() ? 'contraseñas' : 'contraseña')"
+        [attr.aria-pressed]="mostrarClave()"
+        (click)="mostrarClave.set(!mostrarClave())">
+        @if (mostrarClave()) {
+          <svg lucideEyeOff class="size-[18px]" aria-hidden="true"></svg>
+        } @else {
+          <svg lucideEye class="size-[18px]" aria-hidden="true"></svg>
+        }
+      </button>
+    </ng-template>
 
     <!-- En pantallas grandes el cambio de modo lo hace el panel deslizante -->
     <p class="mt-5 text-sm text-muted-fg sm:hidden">
@@ -130,39 +173,49 @@ export class FormularioAcceso implements OnInit {
   protected readonly enviando = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly enviado = signal(false);
-  /** El usuario puede ver lo que escribió en la contraseña. */
+  /** El usuario puede ver lo que escribió en ambas contraseñas para compararlas. */
   protected readonly mostrarClave = signal(false);
+  protected readonly fechaMaxima = haceAnios(18);
+  protected readonly fechaMinima = haceAnios(120);
 
   protected readonly form = this.fb.group({
-    nombre: [''],
+    nombres: [''],
+    apellidos: [''],
+    fechaNacimiento: [''],
     email: ['', [Validators.required, Validators.email, Validators.maxLength(150)]],
     password: ['', [Validators.required, Validators.maxLength(128)]],
     confirmacion: [''],
   });
 
-  private readonly clave = toSignal(this.form.controls.password.valueChanges.pipe(map((v) => v ?? '')), { initialValue: '' });
+  protected readonly valores = toSignal(this.form.valueChanges, { initialValue: this.form.getRawValue() });
+  protected readonly datosPersonales = computed(() => {
+    const v = this.valores();
+    return !!v.password && contieneDatosPersonales(v.password, v);
+  });
 
-  /** Requisitos visibles al registrarse; la fuerza es cuántos se cumplen (0–4). */
+  /** Requisitos visibles al registrarse; la fuerza es cuántos se cumplen. */
   protected readonly requisitos = computed(() => {
-    const c = this.clave();
+    const c = this.valores().password ?? '';
     return [
       { texto: '15 caracteres o más', ok: c.length >= 15 },
       { texto: 'Hasta 128 caracteres', ok: c.length > 0 && c.length <= 128 },
       { texto: 'Frase no vacía', ok: c.trim().length > 0 },
       { texto: 'Evita claves comunes', ok: c.length > 0 && !['123456789012345', 'passwordpassword', 'contraseñacontraseña'].includes(c.toLowerCase()) },
+      { texto: 'Sin tus datos personales', ok: c.length > 0 && !this.datosPersonales() },
     ];
   });
   protected readonly fuerza = computed(() => this.requisitos().filter((r) => r.ok).length);
 
   ngOnInit(): void {
     if (this.registro()) {
-      this.form.controls.nombre.addValidators([Validators.required, Validators.minLength(2), Validators.maxLength(100), Validators.pattern(/\S/)]);
+      this.form.controls.nombres.addValidators(nombreValido);
+      this.form.controls.apellidos.addValidators(nombreValido);
+      this.form.controls.fechaNacimiento.addValidators([Validators.required, mayorDeEdad]);
       this.form.controls.password.addValidators(securePassword);
       this.form.controls.confirmacion.addValidators(Validators.required);
-      this.form.addValidators(matchingPasswords);
-      this.form.controls.confirmacion.updateValueAndValidity();
-      this.form.controls.nombre.updateValueAndValidity();
-      this.form.controls.password.updateValueAndValidity();
+      this.form.addValidators([matchingPasswords, sinDatosPersonales]);
+      for (const control of Object.values(this.form.controls)) control.updateValueAndValidity({ emitEvent: false });
+      this.form.updateValueAndValidity();
     }
   }
 
@@ -171,7 +224,7 @@ export class FormularioAcceso implements OnInit {
     return `${this.modo()}-${campo}`;
   }
 
-  protected invalido(campo: 'nombre' | 'email' | 'password'): boolean {
+  protected invalido(campo: 'nombres' | 'apellidos' | 'fechaNacimiento' | 'email' | 'password'): boolean {
     const control = this.form.controls[campo];
     return control.invalid && (control.touched || this.enviado());
   }
@@ -183,16 +236,17 @@ export class FormularioAcceso implements OnInit {
     this.form.markAllAsTouched();
     if (this.form.invalid) return;
 
-    const { nombre, email, password } = this.form.getRawValue();
+    const { nombres, apellidos, fechaNacimiento, email, password } = this.form.getRawValue();
     const peticion = this.registro()
-      ? this.auth.registrar(nombre.trim(), email.trim(), password)
+      ? this.auth.registrar({ nombres: nombres.trim(), apellidos: apellidos.trim(), fechaNacimiento, email: email.trim(), password })
       : this.auth.login(email.trim(), password);
 
     this.enviando.set(true);
     peticion.subscribe({
       next: () => {
         const destino = this.volver()?.startsWith('/') ? this.volver()! : '/resumen';
-        void this.router.navigateByUrl(this.registro() ? '/importar' : destino);
+        // Tras registrarse, primero el presupuesto (se puede saltar) y luego importar facturas.
+        void this.router.navigateByUrl(this.registro() ? '/presupuesto?inicio=1' : destino);
       },
       error: (e) => {
         this.enviando.set(false);

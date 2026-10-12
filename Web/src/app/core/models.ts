@@ -17,6 +17,10 @@ export type RegimenTributario = 'General' | 'RimpeEmprendedor' | 'RimpeNegocioPo
 
 export interface Perfil {
   nombre: string;
+  nombres: string;
+  /** Vacío en cuentas creadas antes de pedir apellidos. */
+  apellidos: string;
+  fechaNacimiento: string | null;
   email: string;
   cedula: string | null;
   ruc: string | null;
@@ -28,6 +32,10 @@ export interface Perfil {
 }
 
 export interface PerfilRequest {
+  nombres: string;
+  apellidos: string;
+  /** Null conserva la fecha guardada. */
+  fechaNacimiento: string | null;
   cedula: string | null;
   ruc: string | null;
   razonSocial: string | null;
@@ -165,4 +173,45 @@ export interface FiltroComprobantes {
   categoria?: CategoriaGasto | '';
   ruc?: string;
   q?: string;
+}
+
+export interface RegistroRequest {
+  nombres: string;
+  apellidos: string;
+  /** 'yyyy-MM-dd' */
+  fechaNacimiento: string;
+  email: string;
+  password: string;
+}
+
+export interface Rubro {
+  id: number;
+  nombre: string;
+  limite: number;
+  /** Gasto neto del mes de los proveedores asignados al rubro. */
+  gastado: number;
+  proveedores: number;
+}
+
+export interface AsignacionRubro {
+  ruc: string;
+  rubroId: number;
+}
+
+export interface Presupuesto {
+  anio: number;
+  mes: number;
+  ingresoMensual: number | null;
+  totalLimites: number;
+  totalGastado: number;
+  /** Gasto del mes de proveedores sin rubro. */
+  gastoSinRubro: number;
+  rubros: Rubro[];
+  asignaciones: AsignacionRubro[];
+}
+
+export interface PresupuestoRequest {
+  ingresoMensual: number | null;
+  /** id null = rubro nuevo; los rubros que no se envían se eliminan. */
+  rubros: { id: number | null; nombre: string; limite: number }[];
 }

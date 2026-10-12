@@ -28,7 +28,7 @@ public class AuthEndpointTests
         for (var i = 0; i < 10; i++)
         {
             var route = i % 2 == 0 ? "login" : "register";
-            var response = await client.PostAsJsonAsync($"/api/auth/{route}", new { username = "Usuario", email = "invalid", password = "short" });
+            var response = await client.PostAsJsonAsync($"/api/auth/{route}", new { nombres = "Usuario", apellidos = "Prueba", fechaNacimiento = "1990-05-15", email = "invalid", password = "short" });
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
             Assert.Equal("no-store", response.Headers.CacheControl?.ToString());
         }

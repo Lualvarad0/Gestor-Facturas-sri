@@ -1,0 +1,146 @@
+@if (inicio) {
+  <p class="pildora mb-3 inline-block bg-primary-soft text-primary">Paso 1 de 2 · Después traerás tus facturas</p>
+  <app-titulo linea1="Antes de empezar," linea2="tu presupuesto."
+    subtitulo="Cuéntanos cuánto ingresa a tu hogar al mes y cuánto piensas gastar en cada rubro. Así sabrás a tiempo si te estás pasando. Puedes cambiarlo cuando quieras." />
+} @else {
+  <app-titulo linea1="Tu" linea2="presupuesto"
+    [subtitulo]="'Límites mensuales y lo gastado en ' + periodo.etiqueta() + ' según los proveedores asignados a cada rubro.'" />
+}
+
+<app-error-carga [mensaje]="carga().error" />
+
+<form class="mt-6 grid gap-6 xl:grid-cols-[1fr_20rem] xl:items-start" [formGroup]="form" (ngSubmit)="guardar()" novalidate>
+  <div class="space-y-4">
+    <section class="card p-5 sm:p-6" aria-labelledby="titulo-ingreso">
+      <h2 id="titulo-ingreso" class="font-semibold">Ingreso aproximado del mes</h2>
+      <p class="mt-1 text-sm text-muted-fg">Sueldo, honorarios u otros ingresos que recibes cada mes. Es solo una referencia.</p>
+      <label class="sr-only" for="ingreso">Ingreso mensual en dólares</label>
+      <div class="relative mt-4 max-w-xs">
+        <span class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-fg" aria-hidden="true">$</span>
+        <input id="ingreso" type="number" inputmode="decimal" min="0" step="0.01" class="input money min-h-11 pl-7"
+          formControlName="ingresoMensual" placeholder="0,00" [attr.aria-invalid]="form.controls.ingresoMensual.invalid" />
+      </div>
+      @if (form.controls.ingresoMensual.invalid) {
+        <p class="field-error">Escribe un monto entre 0 y 10.000.000.</p>
+      }
+    </section>
+
+    <section class="card p-5 sm:p-6" aria-labelledby="titulo-rubros">
+      <h2 id="titulo-rubros" class="font-semibold">¿En qué piensas gastar?</h2>
+      <p class="mt-1 text-sm text-muted-fg">Crea tus rubros (luz, internet, gimnasio…) y ponle un límite mensual a cada uno.</p>
+
+      @if (form.controls.rubros.length === 0) {
+        <p class="mt-5 rounded-xl bg-muted p-4 text-sm text-muted-fg">Aún no tienes rubros. Agrega uno o elige una sugerencia.</p>
+      }
+
+      <ul class="mt-5 space-y-3" formArrayName="rubros">
+        @for (rubro of form.controls.rubros.controls; track rubro; let i = $index) {
+          <li class="rounded-xl border border-border p-3" [formGroupName]="i">
+            <div class="grid grid-cols-[1fr_auto] gap-3 sm:grid-cols-[minmax(0,1fr)_9rem_auto] sm:items-start">
+              <div class="col-span-2 sm:col-span-1">
+                <label class="field-label" [attr.for]="'rubro-nombre-' + i">Rubro</label>
+                <input [id]="'rubro-nombre-' + i" class="input min-h-11" formControlName="nombre" maxlength="40" placeholder="Ej.: Internet"
+                  [attr.aria-invalid]="invalido(i, 'nombre') || duplicados().has(rubro.controls.nombre.value.trim().toLowerCase())" />
+                @if (invalido(i, 'nombre')) {
+                  <p class="field-error">Escribe un nombre de 2 a 40 caracteres.</p>
+                } @else if (duplicados().has(rubro.controls.nombre.value.trim().toLowerCase())) {
+                  <p class="field-error">Ya tienes un rubro con este nombre.</p>
+                }
+              </div>
+              <div>
+                <label class="field-label" [attr.for]="'rubro-limite-' + i">Límite mensual</label>
+                <div class="relative">
+                  <span class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-fg" aria-hidden="true">$</span>
+                  <input [id]="'rubro-limite-' + i" type="number" inputmode="decimal" min="0" step="0.01" class="input money min-h-11 pl-7"
+                    formControlName="limite" placeholder="0,00" [attr.aria-invalid]="invalido(i, 'limite')" />
+                </div>
+                @if (invalido(i, 'limite')) {
+                  <p class="field-error">Monto entre 0 y 1.000.000.</p>
+                }
+              </div>
+              <button type="button" class="btn btn-ghost min-h-11 self-end px-3 text-muted-fg hover:text-danger"
+                [attr.aria-label]="'Quitar el rubro ' + (rubro.controls.nombre.value || (i + 1))" (click)="quitar(i)">
+                <svg lucideTrash2 class="size-4" aria-hidden="true"></svg>
+              </button>
+            </div>
+
+            @if (!inicio && rubro.controls.id.value !== null && gastado().get(rubro.controls.id.value); as r) {
+              <div class="mt-3">
+                <div class="flex justify-between gap-3 text-xs">
+                  <span class="text-muted-fg">{{ r.proveedores }} {{ r.proveedores === 1 ? 'proveedor' : 'proveedores' }} · {{ periodo.etiqueta() }}</span>
+                  <span class="money" [class.text-danger]="r.gastado > r.limite">{{ r.gastado | dinero }} de {{ r.limite | dinero }}</span>
+                </div>
+                <div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuemin="0" aria-valuemax="100"
+                  [attr.aria-valuenow]="porcentaje(r.gastado, r.limite)" [attr.aria-label]="'Gastado en ' + r.nombre">
+                  <div class="h-full rounded-full transition-[width]" [style.width.%]="porcentaje(r.gastado, r.limite)"
+                    [class]="r.gastado > r.limite ? 'bg-danger' : r.gastado > r.limite * 0.8 ? 'bg-warning' : 'bg-success'"></div>
+                </div>
+              </div>
+            }
+          </li>
+        }
+      </ul>
+
+      <button type="button" class="btn btn-secondary mt-4" (click)="agregar()" [disabled]="form.controls.rubros.length >= 30">
+        <svg lucidePlus class="size-4" aria-hidden="true"></svg> Agregar rubro
+      </button>
+
+      @if (sugerencias().length && form.controls.rubros.length < 30) {
+        <div class="mt-5">
+          <p class="text-xs font-medium text-muted-fg">Sugerencias</p>
+          <div class="mt-2 flex flex-wrap gap-2">
+            @for (s of sugerencias(); track s) {
+              <button type="button" class="rounded-full border border-border px-3 py-1.5 text-sm hover:bg-muted" (click)="agregar(s)">+ {{ s }}</button>
+            }
+          </div>
+        </div>
+      }
+    </section>
+  </div>
+
+  <aside class="card p-5 sm:p-6 xl:sticky xl:top-24" aria-labelledby="titulo-balance">
+    <h2 id="titulo-balance" class="font-semibold">Tu balance</h2>
+    <dl class="mt-4 space-y-3 text-sm">
+      <div class="flex justify-between gap-3"><dt class="text-muted-fg">Ingreso</dt><dd class="money font-medium">{{ ingreso() | dinero }}</dd></div>
+      <div class="flex justify-between gap-3"><dt class="text-muted-fg">Total de límites</dt><dd class="money font-medium">{{ totalLimites() | dinero }}</dd></div>
+      <div class="flex justify-between gap-3 border-t border-border pt-3">
+        <dt class="font-medium">{{ disponible() >= 0 ? 'Sin asignar' : 'Te excedes en' }}</dt>
+        <dd class="money font-semibold" [class.text-danger]="disponible() < 0" [class.text-success]="disponible() > 0">{{ (disponible() < 0 ? -disponible() : disponible()) | dinero }}</dd>
+      </div>
+    </dl>
+    @if (ingreso() > 0) {
+      <div class="mt-4 h-2 overflow-hidden rounded-full bg-muted" aria-hidden="true">
+        <div class="h-full rounded-full" [class]="disponible() < 0 ? 'bg-danger' : 'bg-primary'" [style.width.%]="porcentaje(totalLimites(), ingreso())"></div>
+      </div>
+    }
+    @if (disponible() < 0) {
+      <p class="aviso-atencion mt-4 text-xs" role="status">Tus límites suman más que tu ingreso. Puedes guardarlo así, pero revisa si es realista.</p>
+    }
+
+    @if (!inicio && carga().datos; as p) {
+      <dl class="mt-5 space-y-3 border-t border-border pt-5 text-sm">
+        <div class="flex justify-between gap-3"><dt class="text-muted-fg">Gastado en rubros</dt><dd class="money font-medium">{{ p.totalGastado | dinero }}</dd></div>
+        <div class="flex justify-between gap-3"><dt class="text-muted-fg">Proveedores sin rubro</dt><dd class="money font-medium">{{ p.gastoSinRubro | dinero }}</dd></div>
+      </dl>
+      <p class="mt-3 text-xs text-muted-fg">Asigna cada proveedor a un rubro en <a routerLink="/proveedores" class="text-primary hover:underline">Proveedores</a> para que su gasto cuente aquí.</p>
+    }
+
+    @if (error()) {
+      <p class="aviso-error mt-5 text-sm" role="alert">
+        <svg lucideCircleAlert class="mt-0.5 size-4 shrink-0 text-danger" aria-hidden="true"></svg> {{ error() }}
+      </p>
+    }
+
+    <button type="submit" class="btn btn-primary mt-5 min-h-11 w-full" [disabled]="guardando() || (!carga().datos && !carga().error)">
+      @if (guardando()) {
+        <svg lucideLoader class="size-4 animate-spin" aria-hidden="true"></svg>
+      }
+      {{ inicio ? 'Guardar y continuar' : 'Guardar presupuesto' }}
+    </button>
+    @if (inicio) {
+      <a routerLink="/importar" class="btn btn-ghost mt-2 min-h-11 w-full">Hacerlo después</a>
+    } @else if (form.dirty) {
+      <p class="mt-3 text-center text-xs text-muted-fg">Tienes cambios sin guardar.</p>
+    }
+  </aside>
+</form>

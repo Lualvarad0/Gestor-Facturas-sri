@@ -54,6 +54,23 @@ public partial class ImportacionSriTests
     }
 
     [Fact]
+    public async Task Recuperacion_RechazaLaClaveActualYDatosPersonales()
+    {
+        const string email = "reuse@test.ec";
+        using var http = await ClienteAutenticadoAsync(email);
+        await http.PostAsJsonAsync("/api/auth/forgot-password", new { email });
+        var token = _factory.Recovery.Tokens[email];
+        var misma = await http.PostAsJsonAsync("/api/auth/reset-password", new { email, token, password = "Mi frase secreta 123" });
+        Assert.Equal(HttpStatusCode.BadRequest, misma.StatusCode);
+        Assert.Contains("distinta a la actual", await misma.Content.ReadAsStringAsync());
+        var personal = await http.PostAsJsonAsync("/api/auth/reset-password", new { email, token, password = "Mi frase nueva de David" });
+        Assert.Equal(HttpStatusCode.BadRequest, personal.StatusCode);
+        // Los rechazos no consumen el enlace.
+        Assert.Equal(HttpStatusCode.OK, (await http.PostAsJsonAsync("/api/auth/reset-password",
+            new { email, token, password = "Mi nueva frase privada 456" })).StatusCode);
+    }
+
+    [Fact]
     public async Task Recuperacion_RespuestaGenericaYEsperaEntreCorreos()
     {
         const string email = "cooldown@test.ec";

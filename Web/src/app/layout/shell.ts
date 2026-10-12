@@ -12,6 +12,7 @@ import {
   LucideSettings,
   LucideStore,
   LucideSun,
+  LucideWallet,
   LucideX,
 } from '@lucide/angular';
 import { AuthService } from '../core/auth';
@@ -25,7 +26,7 @@ import { Credito, Marca } from '../shared/marca';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     RouterOutlet, RouterLink, RouterLinkActive, Avisos, Marca, Credito,
-    LucideLayoutDashboard, LucideReceipt, LucideFileUp, LucideStore, LucideSettings, LucideLogOut, LucideMenu, LucideX, LucideMoon, LucideSun,
+    LucideLayoutDashboard, LucideReceipt, LucideFileUp, LucideStore, LucideSettings, LucideLogOut, LucideMenu, LucideX, LucideMoon, LucideSun, LucideWallet,
   ],
   templateUrl: './shell.html',
 })

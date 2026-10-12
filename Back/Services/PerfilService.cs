@@ -41,7 +41,10 @@ namespace Back.Services
             var rucAnterior = usuario.Ruc;
             var razonSocial = string.IsNullOrWhiteSpace(request.RazonSocial) ? null : request.RazonSocial.Trim().ToUpperInvariant();
 
-
+            usuario.Nombres = request.Nombres?.Trim() ?? usuario.Nombres;
+            usuario.Apellidos = request.Apellidos?.Trim() ?? usuario.Apellidos;
+            usuario.Nombre = Usuario.NombreCompleto(usuario.Nombres, usuario.Apellidos);
+            usuario.FechaNacimiento = request.FechaNacimiento ?? usuario.FechaNacimiento;
             usuario.Cedula = cedula;
             usuario.Ruc = ruc;
             usuario.RazonSocial = razonSocial;

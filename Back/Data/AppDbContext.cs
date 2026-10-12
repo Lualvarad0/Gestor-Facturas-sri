@@ -11,6 +11,8 @@ namespace Back.Data
         public DbSet<Comprobante> Comprobantes => Set<Comprobante>();
         public DbSet<ComprobanteXml> ComprobantesXml => Set<ComprobanteXml>();
         public DbSet<ProveedorCategoria> ProveedoresCategoria => Set<ProveedorCategoria>();
+        public DbSet<Rubro> Rubros => Set<Rubro>();
+        public DbSet<ProveedorRubro> ProveedoresRubro => Set<ProveedorRubro>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -18,7 +20,10 @@ namespace Back.Data
 
             modelBuilder.Entity<Usuario>(e =>
             {
-                e.Property(u => u.Nombre).HasMaxLength(100);
+                e.Property(u => u.Nombre).HasMaxLength(121);
+                e.Property(u => u.Nombres).HasMaxLength(60);
+                e.Property(u => u.Apellidos).HasMaxLength(60);
+                e.Property(u => u.IngresoMensual).HasPrecision(12, 2);
                 e.Property(u => u.Correo).HasMaxLength(150);
                 e.Property(u => u.Rol).HasMaxLength(20);
                 e.Property(u => u.ResetTokenHash).HasMaxLength(64);
@@ -80,6 +85,25 @@ namespace Back.Data
                 e.Property(p => p.Categoria).HasConversion<string>().HasMaxLength(20);
                 e.HasIndex(p => new { p.UsuarioId, p.Ruc }).IsUnique();
                 e.HasOne<Usuario>().WithMany().HasForeignKey(p => p.UsuarioId).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<Rubro>(e =>
+            {
+                e.ToTable("rubros");
+                e.Property(r => r.Nombre).HasMaxLength(40);
+                e.Property(r => r.Limite).HasPrecision(12, 2);
+                e.HasIndex(r => new { r.UsuarioId, r.Nombre }).IsUnique();
+                e.HasOne<Usuario>().WithMany().HasForeignKey(r => r.UsuarioId).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<ProveedorRubro>(e =>
+            {
+                e.ToTable("proveedores_rubro");
+                e.Property(p => p.Ruc).HasMaxLength(13);
+                e.HasIndex(p => new { p.UsuarioId, p.Ruc }).IsUnique();
+                e.HasOne<Usuario>().WithMany().HasForeignKey(p => p.UsuarioId).OnDelete(DeleteBehavior.Cascade);
+                // Al borrar un rubro, sus proveedores quedan sin rubro.
+                e.HasOne<Rubro>().WithMany().HasForeignKey(p => p.RubroId).OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

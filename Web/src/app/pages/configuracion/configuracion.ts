@@ -7,6 +7,7 @@ import { AvisosService, PreferenciasService, mensajeDeError } from '../../core/e
 import { RegimenTributario } from '../../core/models';
 import { PerfilService, REGIMENES, cedulaValida, rucValido, soloDigitos } from '../../core/perfil.service';
 import { Segmentado } from '../../shared/controles';
+import { haceAnios, mayorDeEdad, nombreValido } from '../../shared/validadores';
 
 @Component({
   selector: 'app-configuracion',
@@ -29,7 +30,13 @@ export class Configuracion {
   protected readonly guardando = signal(false);
   protected readonly error = signal<string | null>(null);
 
+  protected readonly fechaMaxima = haceAnios(18);
+  protected readonly fechaMinima = haceAnios(120);
+
   protected readonly form = this.fb.group({
+    nombres: ['', nombreValido],
+    apellidos: ['', nombreValido],
+    fechaNacimiento: ['', mayorDeEdad],
     ruc: [''],
     cedula: [''],
     razonSocial: [''],
@@ -55,6 +62,9 @@ export class Configuracion {
       const p = this.perfilService.perfil();
       if (!p) return;
       this.form.reset({
+        nombres: p.nombres,
+        apellidos: p.apellidos,
+        fechaNacimiento: p.fechaNacimiento ?? '',
         ruc: p.ruc ?? '',
         cedula: p.cedula ?? '',
         razonSocial: p.razonSocial ?? '',
@@ -76,6 +86,11 @@ export class Configuracion {
 
   protected guardar(): void {
     this.error.set(null);
+    this.form.markAllAsTouched();
+    if (this.form.controls.nombres.invalid || this.form.controls.apellidos.invalid || this.form.controls.fechaNacimiento.invalid) {
+      this.error.set('Revisa tus datos personales antes de guardar.');
+      return;
+    }
     if (this.rucInvalido() || this.cedulaInvalida()) {
       this.error.set('Revisa la cédula y el RUC antes de guardar.');
       return;
@@ -85,6 +100,9 @@ export class Configuracion {
 
     this.guardando.set(true);
     this.perfilService.guardar({
+      nombres: v.nombres.trim(),
+      apellidos: v.apellidos.trim(),
+      fechaNacimiento: v.fechaNacimiento || null,
       ruc: soloDigitos(v.ruc) || null,
       cedula: soloDigitos(v.cedula) || null,
       razonSocial: v.razonSocial.trim() || null,

@@ -33,6 +33,46 @@ public static class PasswordSecurity
     }
 
     public static string Fingerprint(string value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
+
+    /// <summary>
+    /// Si la contraseña contiene nombres, apellidos, el correo (parte local) o la fecha de nacimiento.
+    /// Compara sin mayúsculas, tildes ni separadores; ignora palabras de menos de 4 letras (de, la, Ana…).
+    /// Web/src/app/shared/password.ts aplica la misma regla.
+    /// </summary>
+    public static bool ContieneDatosPersonales(string password, string? nombres, string? apellidos, string? correo, DateOnly? nacimiento)
+    {
+        var clave = Normalizar(password);
+        var local = correo?.Split('@')[0];
+        var fragmentos = new[] { nombres, apellidos, local }
+            .SelectMany(t => System.Text.RegularExpressions.Regex.Split(t ?? string.Empty, @"[^\p{L}\p{N}]+"))
+            .Append(local)
+            .Select(t => Normalizar(t ?? string.Empty))
+            .Where(t => t.Length >= 4);
+        if (nacimiento is { } f)
+            fragmentos = fragmentos.Concat(new[] { "yyyy", "ddMMyyyy", "yyyyMMdd", "MMddyyyy", "ddMMyy" }
+                .Select(formato => f.ToString(formato, System.Globalization.CultureInfo.InvariantCulture)));
+        return fragmentos.Any(clave.Contains);
+    }
+
+    private static string Normalizar(string texto)
+    {
+        var sb = new StringBuilder();
+        foreach (var c in texto.Normalize(NormalizationForm.FormD))
+            if (char.IsLetterOrDigit(c)) sb.Append(char.ToLowerInvariant(c));
+        return sb.ToString();
+    }
+}
+
+/// <summary>Fecha de nacimiento de una persona de 18 a 120 años.</summary>
+public sealed class MayorDeEdadAttribute : ValidationAttribute
+{
+    public MayorDeEdadAttribute() => ErrorMessage = "Debes ser mayor de 18 años. Revisa tu fecha de nacimiento.";
+    public override bool IsValid(object? value)
+    {
+        if (value is not DateOnly fecha) return value is null;
+        var hoy = DateOnly.FromDateTime(DateTime.UtcNow);
+        return fecha <= hoy.AddYears(-18) && fecha >= hoy.AddYears(-120);
+    }
 }
 
 public sealed class SecurePasswordAttribute : ValidationAttribute

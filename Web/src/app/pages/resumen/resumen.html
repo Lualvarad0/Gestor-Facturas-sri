@@ -18,6 +18,41 @@
     <article class="card p-5"><p class="etiqueta">Promedio por comprobante</p><p class="mt-4 text-3xl font-semibold tracking-tight money">{{ promedio() | dinero }}</p><p class="mt-3 text-xs text-muted-fg">Total neto / comprobantes</p></article>
   </section>
 
+  @if (presupuesto().datos; as p) {
+    @if (p.rubros.length || p.ingresoMensual) {
+      <section class="card mt-6 p-5 sm:p-6" aria-labelledby="titulo-presupuesto">
+        <div class="flex flex-wrap items-center justify-between gap-3"><h2 id="titulo-presupuesto" class="font-semibold">Tu presupuesto de {{ periodo.etiqueta() }}</h2><a routerLink="/presupuesto" class="text-xs text-primary hover:underline">Editar presupuesto →</a></div>
+        <div class="mt-4 grid gap-4 text-sm sm:grid-cols-3">
+          <div><p class="etiqueta">Ingreso aproximado</p><p class="mt-1 text-xl font-semibold money">{{ (p.ingresoMensual ?? 0) | dinero }}</p></div>
+          <div><p class="etiqueta">Gasto del mes</p><p class="mt-1 text-xl font-semibold money">{{ r.total | dinero }}</p></div>
+          @if (p.ingresoMensual) {
+            <div><p class="etiqueta">{{ p.ingresoMensual - r.total >= 0 ? 'Te queda' : 'Te pasaste por' }}</p><p class="mt-1 text-xl font-semibold money" [class.text-danger]="p.ingresoMensual - r.total < 0" [class.text-success]="p.ingresoMensual - r.total >= 0">{{ (p.ingresoMensual - r.total < 0 ? r.total - p.ingresoMensual : p.ingresoMensual - r.total) | dinero }}</p></div>
+          }
+        </div>
+        @if (rubros().length) {
+          <ul class="mt-5 grid gap-x-8 gap-y-4 md:grid-cols-2">
+            @for (rb of rubros(); track rb.id) {
+              <li>
+                <div class="flex justify-between gap-3 text-sm"><span class="truncate">{{ rb.nombre }}</span><span class="money shrink-0" [class.text-danger]="rb.gastado > rb.limite">{{ rb.gastado | dinero }} <span class="text-muted-fg">/ {{ rb.limite | dinero }}</span></span></div>
+                <div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuemin="0" aria-valuemax="100" [attr.aria-valuenow]="rb.avance > 100 ? 100 : rb.avance" [attr.aria-label]="'Gastado en ' + rb.nombre">
+                  <div class="h-full rounded-full" [style.width.%]="rb.avance > 100 ? 100 : rb.avance" [class]="rb.avance > 100 ? 'bg-danger' : rb.avance > 80 ? 'bg-warning' : 'bg-success'"></div>
+                </div>
+              </li>
+            }
+          </ul>
+          @if (p.gastoSinRubro > 0) {
+            <a routerLink="/proveedores" class="mt-4 inline-block text-xs text-muted-fg hover:text-primary hover:underline">{{ p.gastoSinRubro | dinero }} de proveedores sin rubro. Asígnalos →</a>
+          }
+        }
+      </section>
+    } @else {
+      <a routerLink="/presupuesto" class="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary-soft p-5">
+        <span><span class="block font-medium">Define tu presupuesto</span><span class="mt-1 block text-sm text-muted-fg">Registra tu ingreso del mes y un límite para cada rubro. Te avisaremos aquí si te pasas.</span></span>
+        <span class="btn btn-primary">Crear presupuesto</span>
+      </a>
+    }
+  }
+
   <div class="mt-6 grid gap-6 xl:grid-cols-[1.45fr_1fr]">
     <section class="card p-5 sm:p-6">
       <div class="flex items-center justify-between"><h2 class="font-semibold">Evolución de tus gastos</h2><span class="text-xs text-muted-fg">{{ periodo.anio() }} · USD</span></div>

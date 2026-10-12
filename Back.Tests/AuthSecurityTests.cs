@@ -42,13 +42,49 @@ public class AuthSecurityTests
     {
         foreach (var password in new[] { "corta", new string('x', 129), "               " })
         {
-            Assert.False(Valid(new RegisterRequest("Usuario", "yo@example.ec", password)));
+            Assert.False(Valid(Registro(password: password)));
             Assert.False(Valid(new ResetPasswordRequest("yo@example.ec", new string('a', 64), password)));
         }
-        Assert.True(Valid(new RegisterRequest("Usuario", "yo@example.ec", "una frase segura y única")));
+        Assert.True(Valid(Registro()));
         Assert.False(Valid(new ResetPasswordRequest("yo@example.ec", "token inválido", "una frase segura y única")));
-        Assert.False(Valid(new RegisterRequest("  ", "yo@example.ec", "una frase segura y única")));
+        Assert.False(Valid(Registro(nombres: "  ")));
+        Assert.False(Valid(Registro(apellidos: "Pérez 2")));
+        Assert.True(Valid(Registro(nombres: "María José", apellidos: "O'Neil-Pérez")));
     }
+
+    [Fact]
+    public void Registro_ExigeMayoriaDeEdad()
+    {
+        var hoy = DateOnly.FromDateTime(DateTime.UtcNow);
+        Assert.False(Valid(Registro(nacimiento: hoy.AddYears(-18).AddDays(1))));
+        Assert.True(Valid(Registro(nacimiento: hoy.AddYears(-18))));
+        Assert.False(Valid(Registro(nacimiento: hoy.AddYears(-121))));
+        Assert.False(Valid(new RegisterRequest("David", "Alvarado", null, "yo@example.ec", "una frase segura y única")));
+    }
+
+    [Theory]
+    [InlineData("mi frase con david adentro", true)]
+    [InlineData("Mi frase de ÁLVARADO segura", true)]
+    [InlineData("frase segura y única 1990", true)]
+    [InlineData("frase segura 15/05/1990 aquí", true)]
+    [InlineData("frase con mi correo yo.cuenta", true)]
+    [InlineData("una frase segura y única", false)]
+    [InlineData("frase con de la y ana corta", false)]
+    public void Clave_RechazaDatosPersonales(string password, bool contiene) =>
+        Assert.Equal(contiene, PasswordSecurity.ContieneDatosPersonales(password, "David Ana", "Alvarado de la Cruz", "yo.cuenta@example.ec", new DateOnly(1990, 5, 15)));
+
+    [Fact]
+    public void Registro_ValidaDatosPersonalesEnLaClave()
+    {
+        var conNombre = Registro(password: "la frase segura de david");
+        Assert.Contains(conNombre.Validate(new ValidationContext(conNombre)), r => r.MemberNames.Contains("Password"));
+        var segura = Registro();
+        Assert.Empty(segura.Validate(new ValidationContext(segura)));
+    }
+
+    private static RegisterRequest Registro(string nombres = "David", string apellidos = "Alvarado",
+        DateOnly? nacimiento = null, string password = "una frase segura y única") =>
+        new(nombres, apellidos, nacimiento ?? new DateOnly(1990, 5, 15), "yo@example.ec", password);
 
     [Fact]
     public void Jwt_SelloDeSesionCambiaConLaContraseña()
