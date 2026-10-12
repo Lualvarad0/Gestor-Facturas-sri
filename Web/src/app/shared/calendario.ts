@@ -85,10 +85,15 @@ export class SelectorFecha implements ControlValueAccessor, AfterViewInit, OnDes
   ngAfterViewInit(): void {
     const seleccionada = aFecha(this.valor);
     const max = aFecha(this.max() ?? '');
+    // "Hoy" solo si hoy es una fecha permitida (no lo es, p. ej., en la fecha de nacimiento).
+    const hoyPermitido = !max || max >= new Date();
     this.calendario = new AirDatepicker(this.campo()!.nativeElement, {
       ...OPCIONES_BASE,
       isMobile: enMovil(),
       dateFormat: 'dd/MM/yyyy',
+      buttons: hoyPermitido
+        ? ['clear', { content: 'Hoy', className: 'adp-principal', onClick: (dp) => void dp.selectDate(new Date()) }]
+        : ['clear'],
       minDate: aFecha(this.min() ?? '') ?? false,
       maxDate: max ?? false,
       selectedDates: seleccionada ? [seleccionada] : false,
@@ -150,6 +155,8 @@ export class SelectorFecha implements ControlValueAccessor, AfterViewInit, OnDes
     if (fecha) {
       void this.calendario?.selectDate(fecha, { silent: true });
       this.calendario?.setViewDate(fecha);
+      // Con una fecha guardada, el calendario abre en su mes (sin ella, en la vista inicial).
+      if (!this.calendario?.visible) this.calendario?.setCurrentView('days', { silent: true });
       entrada.value = aTexto(fecha);
     } else {
       this.calendario?.clear({ silent: true });
@@ -208,6 +215,14 @@ export class SelectorPeriodo implements AfterViewInit, OnDestroy {
       selectedDates: [fecha],
       startDate: fecha,
       toggleSelected: false,
+      buttons: [{
+        content: 'Este mes',
+        className: 'adp-principal',
+        onClick: (dp) => {
+          const hoy = new Date();
+          void dp.selectDate(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
+        },
+      }],
       dateFormat: (d: Date) => `${LOCALE_ES.months[d.getMonth()][0].toUpperCase()}${LOCALE_ES.months[d.getMonth()].slice(1)} ${d.getFullYear()}`,
       onSelect: ({ date }) => {
         const d = Array.isArray(date) ? date[0] : date;

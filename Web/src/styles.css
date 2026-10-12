@@ -328,20 +328,22 @@
 .chart-bar.negativo { background: var(--warning) !important; }
 @media (max-width: 480px) { .expense-chart { gap: 2px; } .chart-column { padding: 2px; } }
 
-/* Calendario (Air Datepicker) con los tokens de Nudo; hereda el modo oscuro. */
+/* Calendario (Air Datepicker), estilo editorial de Nudo: mes en Instrument Serif, días en círculos,
+   hoy con anillo índigo y selección en índigo. Usa los tokens, así que hereda el modo oscuro. */
 .air-datepicker {
   --adp-font-family: var(--font-body);
   --adp-font-size: 14px;
-  --adp-width: 288px;
-  --adp-padding: 10px;
+  --adp-width: 304px;
+  --adp-padding: 12px;
   --adp-z-index: 60;
-  --adp-border-radius: 14px;
-  --adp-cell-border-radius: 8px;
+  --adp-border-radius: 16px;
+  --adp-cell-border-radius: 999px;
   --adp-btn-border-radius: 999px;
+  --adp-btn-height: 34px;
   --adp-nav-height: 40px;
-  --adp-nav-action-size: 36px;
-  --adp-day-cell-height: 36px;
-  --adp-month-cell-height: 46px;
+  --adp-nav-action-size: 34px;
+  --adp-day-cell-height: 40px;
+  --adp-month-cell-height: 48px;
   --adp-year-cell-height: 52px;
   --adp-pointer-size: 0px;
   --adp-background-color: var(--card);
@@ -349,35 +351,53 @@
   --adp-background-color-active: var(--muted);
   --adp-color: var(--fg);
   --adp-color-secondary: var(--muted-fg);
-  --adp-accent-color: var(--primary);
+  --adp-accent-color: var(--brand);
   --adp-color-current-date: var(--primary);
-  --adp-color-other-month: color-mix(in srgb, var(--muted-fg) 50%, transparent);
+  --adp-color-other-month: color-mix(in srgb, var(--muted-fg) 45%, transparent);
   --adp-color-other-month-hover: var(--muted-fg);
-  --adp-color-disabled: color-mix(in srgb, var(--muted-fg) 40%, transparent);
+  --adp-color-disabled: color-mix(in srgb, var(--muted-fg) 35%, transparent);
   --adp-day-name-color: var(--muted-fg);
   --adp-border-color: var(--border);
   --adp-border-color-inner: var(--border);
   --adp-nav-arrow-color: var(--muted-fg);
   --adp-nav-color-secondary: var(--muted-fg);
   --adp-cell-background-color-hover: var(--muted);
-  --adp-cell-background-color-selected: var(--ink);
-  --adp-cell-background-color-selected-hover: var(--ink);
-  --adp-btn-color: var(--primary);
+  --adp-cell-background-color-selected: var(--brand);
+  --adp-cell-background-color-selected-hover: var(--brand-hover);
+  --adp-btn-color: var(--muted-fg);
   --adp-btn-color-hover: var(--fg);
   --adp-btn-background-color-hover: var(--muted);
   --adp-overlay-background-color: rgba(17, 20, 23, 0.45);
   --adp-mobile-width: 320px;
   box-shadow: var(--shadow-dashboard);
-  margin-top: 6px;
+  margin-top: 8px;
 }
-.air-datepicker-cell.-selected-,
-.air-datepicker-cell.-selected-.-current- { color: var(--ink-fg); font-weight: 600; }
-.air-datepicker-cell.-current-:not(.-selected-) { font-weight: 600; box-shadow: inset 0 0 0 1px var(--primary-soft); }
-.air-datepicker-nav--title { font-weight: 600; text-transform: capitalize; }
-.air-datepicker-nav--title i { color: var(--muted-fg); }
-.air-datepicker-nav--action, .air-datepicker-nav--title { border-radius: 8px; }
+/* Encabezado: mes en serif y año en gris, sin línea divisoria. */
+.air-datepicker-nav { border-bottom: none; padding-bottom: 4px; }
+.air-datepicker-nav--title {
+  padding: 0 10px; border-radius: 10px;
+  font-family: var(--font-display); font-size: 23px; font-weight: 400; letter-spacing: -0.01em; text-transform: capitalize;
+}
+.air-datepicker-nav--title i { color: var(--muted-fg); margin-left: 0.3em; }
+.air-datepicker-nav--title:hover { background: var(--muted); }
+.air-datepicker-nav--action { border-radius: 999px; color: var(--muted-fg); }
+.air-datepicker-nav--action:hover { color: var(--fg); }
+.air-datepicker-body--day-names { margin: 6px 0 4px; }
 .air-datepicker-body--day-name { font-size: 12px; font-weight: 500; text-transform: none; }
-.air-datepicker-cell.-month-, .air-datepicker-cell.-year- { text-transform: capitalize; }
+/* Días en círculos de 36px centrados en su columna. */
+.air-datepicker-cell { font-variant-numeric: tabular-nums; transition: background-color 120ms, color 120ms; }
+.air-datepicker-cell.-day- { width: 36px; height: 36px; justify-self: center; align-self: center; }
+.air-datepicker-cell.-month-, .air-datepicker-cell.-year- { margin: 4px; text-transform: capitalize; }
+.air-datepicker-cell.-current-:not(.-selected-) { color: var(--primary); font-weight: 600; box-shadow: inset 0 0 0 1.5px var(--brand); }
+.air-datepicker-cell.-selected-,
+.air-datepicker-cell.-selected-.-current- { color: var(--brand-ink); font-weight: 600; box-shadow: 0 4px 12px -4px color-mix(in srgb, var(--brand) 60%, transparent); }
+.air-datepicker-cell.-focus-:not(.-selected-) { background: var(--muted); }
+/* Pie: acción secundaria a la izquierda y principal en píldora a la derecha. */
+.air-datepicker--buttons { padding: 10px 12px; }
+.air-datepicker-buttons { display: flex; justify-content: space-between; gap: 8px; }
+.air-datepicker-button { padding: 0 12px; font-size: 13px; font-weight: 500; }
+.air-datepicker-button.adp-principal { margin-left: auto; padding: 0 16px; color: var(--fg); border: 1px solid var(--border); }
+.air-datepicker-button.adp-principal:hover { background: var(--muted); }
 
 /* Transición entre páginas (View Transitions del router): fundido con un leve desplazamiento. */
 ::view-transition-old(root) {
