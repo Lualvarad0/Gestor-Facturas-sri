@@ -84,6 +84,43 @@ dotnet test Back.Tests --filter "FullyQualifiedName~AuthSecurityTests|FullyQuali
 
 Las pruebas de integración `Recuperacion_*` y `Login_Bloquea*` necesitan el PostgreSQL de pruebas indicado arriba. Comprueban consumo concurrente del enlace, caducidad, respuestas genéricas, bloqueo y revocación de sesiones; el envío SMTP real requiere configurar el proveedor.
 
+## Despliegue
+
+Arquitectura gratuita de referencia: **Neon** (PostgreSQL), **Render** (API en Docker) y **Vercel** (frontend). El frontend llama directo a la API de Render con CORS; no se usan rewrites de Vercel hacia `/api`, porque todos los visitantes compartirían la IP del proxy y el límite de autenticación.
+
+### Base de datos (Neon)
+
+Crea el proyecto en la región AWS US East 1 y usa la conexión **directa** (sin *pooling*) en formato Npgsql:
+
+```text
+Host=<host>.us-east-1.aws.neon.tech;Database=<base>;Username=<usuario>;Password=<clave>;SSL Mode=Require
+```
+
+### API (Render)
+
+`render.yaml` define un servicio web Docker (plan free, región virginia, health check en `/health`). El `Dockerfile` de la raíz compila también el frontend y lo sirve desde `wwwroot`, así que la imagen funciona sola. Variables:
+
+| Variable | Valor |
+|---|---|
+| `ConnectionStrings__Default` | Cadena de Neon (se carga a mano en el panel) |
+| `Jwt__Key` | Generada por Render |
+| `Database__MigrateOnStartup` | `true` |
+| `ForwardedHeaders__Enabled` | `true`: toma la IP y el esquema del proxy y no redirige a HTTPS |
+| `ForwardedHeaders__ForwardLimit` | Opcional, número de proxies delante (por defecto `1`) |
+| `PORT` | `8080` |
+| `Cors__Origins__0` | Dominio de Vercel, con `https://` y sin barra final |
+| `AllowedHosts` | Dominio de Render (por ejemplo `nudo-ab12.onrender.com`) |
+| `RecoveryMail__...` | Opcional, ver *Cuentas y recuperación de contraseña*; `FrontendUrl` es el dominio de Vercel |
+
+Prueba la imagen en local con `docker build -t nudo .`.
+
+### Frontend (Vercel)
+
+1. Pon la URL de Render en `apiUrl` de `Web/src/environments/environment.ts` (`https://<servicio>.onrender.com/api`).
+2. Importa el repositorio con **Root Directory** `Web`, **Build Command** `npx ng build`, **Output Directory** `dist/web/browser` y **Node.js** 24.x (Angular exige 22.22.3 o superior).
+
+`Web/vercel.json` redirige todas las rutas a `index.html` para que funcionen las rutas del SPA.
+
 ## Cómo descargar el reporte del SRI
 
 1. Ingresa a **SRI en Línea** con tu RUC o cédula.

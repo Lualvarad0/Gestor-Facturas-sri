@@ -1,4 +1,5 @@
-// Producción: la API se sirve en el mismo dominio bajo /api (o reemplaza por la URL pública de la API).
+// Producción: el frontend (Vercel) llama directo a la API pública en Render (con CORS).
+// TODO: reemplaza <SERVICIO> por el subdominio real de Render.
 export const environment = {
-  apiUrl: '/api',
+  apiUrl: 'https://<SERVICIO>.onrender.com/api',
 };
