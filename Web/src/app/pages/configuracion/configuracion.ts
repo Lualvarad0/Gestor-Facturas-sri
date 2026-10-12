@@ -4,7 +4,7 @@ import { PreferenciasService } from '../../core/estado';
 import { Segmentado } from '../../shared/controles';
 import { Titulo } from '../../shared/marca';
 
-/** Ajustes de la aplicación en este navegador. Los datos de la persona están en Editar perfil (/perfil). */
+/** Ajustes de la aplicación en este navegador. Los datos de la persona están en Mi perfil (/perfil). */
 @Component({
   selector: 'app-configuracion',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -19,7 +19,7 @@ import { Titulo } from '../../shared/marca';
     </section>
 
     <p class="mt-4 max-w-3xl text-sm text-muted-fg">
-      ¿Buscas tus datos personales, cédula o RUC? Están en <a routerLink="/perfil" class="font-medium text-primary hover:underline">Editar perfil</a>.
+      ¿Buscas tus datos personales, cédula o RUC? Están en <a routerLink="/perfil" class="font-medium text-primary hover:underline">Mi perfil</a>.
     </p>
   `,
 })
