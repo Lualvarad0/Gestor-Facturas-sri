@@ -10,6 +10,13 @@ export class DineroPipe implements PipeTransform {
   }
 }
 
+const PORCENTAJE = new Intl.NumberFormat('es-EC', { maximumFractionDigits: 1 });
+
+/** 24.66 → "24,7 %" */
+export function porcentaje(valor: number): string {
+  return `${PORCENTAJE.format(valor)} %`;
+}
+
 /** '2026-10-03' → '03/10/2026' (sin conversión de zona horaria). */
 @Pipe({ name: 'fechaCorta' })
 export class FechaCortaPipe implements PipeTransform {

@@ -1,4 +1,4 @@
-<app-titulo linea1="Configura" linea2="tu cuenta" />
+<app-titulo linea1="Edita" linea2="tu perfil" subtitulo="Tus datos personales y tributarios. Con tu cédula y RUC ordenamos tus facturas." />
 
 <form class="card mt-6 max-w-3xl p-5 sm:p-6" [formGroup]="form" (ngSubmit)="guardar()" novalidate aria-labelledby="titulo-personales">
   <h2 id="titulo-personales" class="font-semibold">Datos personales</h2>
@@ -21,9 +21,9 @@
     </div>
     <div>
       <label class="field-label" for="fechaNacimiento">Fecha de nacimiento</label>
-      <input id="fechaNacimiento" type="date" class="input" formControlName="fechaNacimiento" autocomplete="bday"
+      <app-selector-fecha inputId="fechaNacimiento" formControlName="fechaNacimiento" autocomplete="bday" vistaInicial="years"
         [min]="fechaMinima" [max]="fechaMaxima"
-        [attr.aria-invalid]="form.controls.fechaNacimiento.invalid && form.controls.fechaNacimiento.touched" />
+        [invalido]="form.controls.fechaNacimiento.invalid && form.controls.fechaNacimiento.touched" />
       @if (form.controls.fechaNacimiento.invalid && form.controls.fechaNacimiento.touched) {
         <p class="field-error">Debes ser mayor de 18 años. Revisa la fecha.</p>
       }
@@ -112,8 +112,3 @@
     }
   </div>
 </form>
-
-<section class="card mt-4 max-w-3xl p-5 sm:p-6" aria-labelledby="titulo-apariencia">
-  <h2 id="titulo-apariencia" class="font-semibold">Apariencia</h2>
-  <app-segmentado class="mt-4 block" [opciones]="temas" [(valor)]="preferencias.tema" etiqueta="Tema" />
-</section>

@@ -8,7 +8,9 @@ import { AvisosService, PeriodoService, mensajeDeError } from '../../core/estado
 import { PresupuestoService } from '../../core/presupuesto.service';
 import { ErrorCarga } from '../../shared/controles';
 import { DineroPipe } from '../../shared/formato';
+import { BarraApilada, Segmento } from '../../shared/barra-apilada';
 import { Titulo } from '../../shared/marca';
+import { Medidor, colorRubro } from '../../shared/medidor';
 
 type RubroForm = FormGroup<{ id: FormControl<number | null>; nombre: FormControl<string>; limite: FormControl<number | null> }>;
 
@@ -22,7 +24,7 @@ const SUGERENCIAS = ['Vivienda', 'Alimentación', 'Servicios básicos', 'Transpo
 @Component({
   selector: 'app-presupuesto',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, Titulo, ErrorCarga, DineroPipe, LucidePlus, LucideTrash2, LucideLoader, LucideCircleAlert],
+  imports: [ReactiveFormsModule, RouterLink, Titulo, ErrorCarga, DineroPipe, BarraApilada, Medidor, LucidePlus, LucideTrash2, LucideLoader, LucideCircleAlert],
   templateUrl: './presupuesto.html',
 })
 export class PresupuestoPagina {
@@ -65,6 +67,20 @@ export class PresupuestoPagina {
   /** Gasto del mes por id de rubro (de la última carga). */
   protected readonly gastado = computed(() => new Map((this.carga().datos?.rubros ?? []).map((r) => [r.id, r])));
 
+  protected readonly rubroResaltado = signal<string | null>(null);
+  /** Límites del formulario como partes del ingreso; del 8.º rubro en adelante se agrupan en "Otros rubros". */
+  protected readonly reparto = computed<Segmento[]>(() => {
+    const rubros = (this.valores().rubros ?? []).map((r, i) => ({
+      clave: String(i), nombre: (r?.nombre ?? '').trim() || `Rubro ${i + 1}`, valor: Math.max(0, Number(r?.limite) || 0), color: colorRubro(i),
+    }));
+    const otros = rubros.slice(7).reduce((t, r) => t + r.valor, 0);
+    const visibles = rubros.slice(0, 7);
+    return otros > 0 ? [...visibles, { clave: 'otros', nombre: 'Otros rubros', valor: otros, color: colorRubro(7) }] : visibles;
+  });
+  /** Posición del ingreso en la barra cuando los límites lo superan. */
+  protected readonly marcadorIngreso = computed(() =>
+    this.ingreso() > 0 && this.totalLimites() > this.ingreso() ? (this.ingreso() / this.totalLimites()) * 100 : null);
+
   constructor() {
     // Rellena el formulario con lo guardado, salvo que el usuario esté editando.
     effect(() => {
@@ -94,9 +110,7 @@ export class PresupuestoPagina {
     this.form.markAsDirty();
   }
 
-  protected porcentaje(gastado: number, limite: number): number {
-    return limite > 0 ? Math.min(100, Math.max(0, (gastado / limite) * 100)) : gastado > 0 ? 100 : 0;
-  }
+  protected readonly colorRubro = colorRubro;
 
   protected invalido(i: number, campo: 'nombre' | 'limite'): boolean {
     const control = this.form.controls.rubros.at(i).controls[campo];
