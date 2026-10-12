@@ -138,6 +138,23 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
+// TEMPORAL: diagnóstico del proxy (ForwardedHeaders:Diagnostico). Registra las cabeceras recibidas
+// en /api/auth y la IP que resulta tras UseForwardedHeaders. Quitar al fijar la configuración.
+if (app.Configuration.GetValue<bool>("ForwardedHeaders:Diagnostico"))
+{
+    app.Use(async (context, next) =>
+    {
+        if (!context.Request.Path.StartsWithSegments("/api/auth")) { await next(); return; }
+        var h = context.Request.Headers;
+        var (xff, xfp, cf, trueClient) = (h["X-Forwarded-For"].ToString(), h["X-Forwarded-Proto"].ToString(),
+            h["CF-Connecting-IP"].ToString(), h["True-Client-IP"].ToString());
+        var conexion = context.Connection.RemoteIpAddress?.ToString();
+        await next();
+        app.Logger.LogInformation(
+            "Proxy: XFF=[{Xff}] XFP=[{Xfp}] CF-Connecting-IP=[{Cf}] True-Client-IP=[{TrueClient}] Conexion={Conexion} IpUsada={IpUsada}",
+            xff, xfp, cf, trueClient, conexion, context.Connection.RemoteIpAddress?.ToString());
+    });
+}
 if (detrasDeProxy)
     app.UseForwardedHeaders();
 
