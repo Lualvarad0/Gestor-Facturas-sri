@@ -7,7 +7,8 @@ WORKDIR /src/Web
 COPY Web/package.json Web/package-lock.json ./
 RUN npm ci
 COPY Web/ ./
-RUN npx ng build --configuration production
+# Sin API_URL, env.mjs genera apiUrl '/api' (mismo dominio que la API).
+RUN npm run build -- --configuration production
 
 # 2. API (.NET 8)
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS back

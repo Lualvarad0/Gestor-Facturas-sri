@@ -5,3 +5,4 @@
 Web/dist
 Web/.angular
 Back.Tests
+Web/src/environments/*.ts

@@ -116,10 +116,12 @@ Prueba la imagen en local con `docker build -t nudo .`.
 
 ### Frontend (Vercel)
 
-1. Pon la URL de Render en `apiUrl` de `Web/src/environments/environment.ts` (`https://<servicio>.onrender.com/api`).
-2. Importa el repositorio con **Root Directory** `Web`, **Build Command** `npx ng build`, **Output Directory** `dist/web/browser` y **Node.js** 24.x (Angular exige 22.22.3 o superior).
+1. Importa el repositorio con **Root Directory** `Web`, **Build Command** `npm run build`, **Output Directory** `dist/web/browser` y **Node.js** 24.x (Angular exige 22.22.3 o superior).
+2. Define la variable `API_URL=https://<servicio>.onrender.com/api`. Sin ella, el build falla.
 
 `Web/vercel.json` redirige todas las rutas a `index.html` para que funcionen las rutas del SPA.
+
+Los archivos `Web/src/environments/*.ts` no se versionan: `Web/scripts/env.mjs` los genera antes de `npm start`, `build`, `watch` y `test`. En local conserva los que ya tengas (por defecto `http://localhost:5000/api` en desarrollo); con `API_URL` escribe esa URL, y en la imagen Docker queda `/api`.
 
 ## Cómo descargar el reporte del SRI
 

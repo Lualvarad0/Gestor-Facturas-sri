@@ -17,7 +17,7 @@ yarn-error.log*
 .sass-cache/
 coverage/
 .vscode/
-src/environments/*.ts
+Web/src/environments/*.ts
 *.log
 *.lock
 *.tsbuildinfo
