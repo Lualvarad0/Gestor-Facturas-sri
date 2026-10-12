@@ -61,12 +61,12 @@ namespace Back.Tests
             builder.UseSetting("Jwt:Key", new string('k', 48));
             builder.UseSetting("Database:MigrateOnStartup", "true");
             builder.UseSetting("Sri:Reintentos", "2");
+            // Los límites HTTP se prueban por separado en AuthEndpointTests.
+            builder.UseSetting("RateLimit:AuthPermitLimit", "100000");
             builder.ConfigureServices(services =>
             {
                 services.AddHttpClient<SriAutorizacionClient>().ConfigurePrimaryHttpMessageHandler(() => Sri);
                 services.AddSingleton<IRecoveryMail>(Recovery);
-                // Los límites HTTP se prueban por separado en AuthEndpointTests.
-                services.AddRateLimiter(options => options.AddPolicy("auth", _ => RateLimitPartition.GetNoLimiter("integration")));
             });
         }
 
@@ -96,7 +96,7 @@ namespace Back.Tests
         private async Task<HttpClient> ClienteAutenticadoAsync(string correo)
         {
             var http = _factory.CreateClient();
-            var registro = await http.PostAsJsonAsync("/api/auth/register", new { username = "Usuario", email = correo, password = "Mi frase secreta 123" });
+            var registro = await http.PostAsJsonAsync("/api/auth/register", new { nombres = "David", apellidos = "Prueba", fechaNacimiento = "1990-05-15", email = correo, password = "Mi frase secreta 123" });
             registro.EnsureSuccessStatusCode();
             var auth = await registro.Content.ReadFromJsonAsync<AuthResponse>(Json);
             http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth!.Token);

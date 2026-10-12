@@ -40,7 +40,13 @@ builder.Services.AddRateLimiter(options =>
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     options.AddPolicy("auth", context => RateLimitPartition.GetFixedWindowLimiter(
         context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-        _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+        _ => new FixedWindowRateLimiterOptions
+        {
+            // RateLimit:AuthPermitLimit permite a las pruebas de integración subir el límite.
+            PermitLimit = builder.Configuration.GetValue("RateLimit:AuthPermitLimit", 10),
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+        }));
     options.OnRejected = async (context, ct) =>
     {
         context.HttpContext.Response.Headers.RetryAfter = "60";
@@ -64,6 +70,7 @@ if (detrasDeProxy)
 builder.Services.AddScoped<IComprobanteRepository, ComprobanteRepository>();
 builder.Services.AddScoped<ComprobanteService>();
 builder.Services.AddScoped<PerfilService>();
+builder.Services.AddScoped<PresupuestoService>();
 
 // Servicio web de autorización del SRI
 builder.Services.Configure<SriOptions>(builder.Configuration.GetSection(SriOptions.Section));

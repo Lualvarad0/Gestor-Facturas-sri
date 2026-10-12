@@ -23,6 +23,7 @@ export const routes: Routes = [
       { path: 'gastos/:id', redirectTo: 'comprobantes/:id' },
       { path: 'comprobantes/:id', title: 'Comprobante · Nudo', loadComponent: () => import('./pages/comprobante/comprobante').then((m) => m.ComprobantePagina) },
       { path: 'importar', title: 'Traer facturas · Nudo', loadComponent: () => import('./pages/importar/importar').then((m) => m.Importar) },
+      { path: 'presupuesto', title: 'Presupuesto · Nudo', loadComponent: () => import('./pages/presupuesto/presupuesto').then((m) => m.PresupuestoPagina) },
       { path: 'proveedores', title: 'Proveedores · Nudo', loadComponent: () => import('./pages/proveedores/proveedores').then((m) => m.Proveedores) },
       { path: 'configuracion', title: 'Configuración · Nudo', loadComponent: () => import('./pages/configuracion/configuracion').then((m) => m.Configuracion) },
     ],

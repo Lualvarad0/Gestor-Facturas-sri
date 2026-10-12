@@ -1,7 +1,36 @@
 <app-titulo linea1="Configura" linea2="tu cuenta" />
 
-<form class="card mt-6 max-w-3xl p-5 sm:p-6" [formGroup]="form" (ngSubmit)="guardar()" novalidate aria-labelledby="titulo-perfil">
-  <h2 id="titulo-perfil" class="font-semibold">Perfil tributario</h2>
+<form class="card mt-6 max-w-3xl p-5 sm:p-6" [formGroup]="form" (ngSubmit)="guardar()" novalidate aria-labelledby="titulo-personales">
+  <h2 id="titulo-personales" class="font-semibold">Datos personales</h2>
+  <div class="mt-5 grid gap-5 sm:grid-cols-2">
+    <div>
+      <label class="field-label" for="nombres">Nombres</label>
+      <input id="nombres" class="input" formControlName="nombres" autocomplete="given-name" maxlength="60"
+        [attr.aria-invalid]="form.controls.nombres.invalid && form.controls.nombres.touched" />
+      @if (form.controls.nombres.invalid && form.controls.nombres.touched) {
+        <p class="field-error">Escribe tus nombres (solo letras, mínimo 2).</p>
+      }
+    </div>
+    <div>
+      <label class="field-label" for="apellidos">Apellidos</label>
+      <input id="apellidos" class="input" formControlName="apellidos" autocomplete="family-name" maxlength="60"
+        [attr.aria-invalid]="form.controls.apellidos.invalid && form.controls.apellidos.touched" />
+      @if (form.controls.apellidos.invalid && form.controls.apellidos.touched) {
+        <p class="field-error">Escribe tus apellidos (solo letras, mínimo 2).</p>
+      }
+    </div>
+    <div>
+      <label class="field-label" for="fechaNacimiento">Fecha de nacimiento</label>
+      <input id="fechaNacimiento" type="date" class="input" formControlName="fechaNacimiento" autocomplete="bday"
+        [min]="fechaMinima" [max]="fechaMaxima"
+        [attr.aria-invalid]="form.controls.fechaNacimiento.invalid && form.controls.fechaNacimiento.touched" />
+      @if (form.controls.fechaNacimiento.invalid && form.controls.fechaNacimiento.touched) {
+        <p class="field-error">Debes ser mayor de 18 años. Revisa la fecha.</p>
+      }
+    </div>
+  </div>
+
+  <h2 id="titulo-perfil" class="mt-8 border-t border-border pt-6 font-semibold">Perfil tributario</h2>
   <p class="mt-1 text-sm text-muted-fg">
     Con tu cédula y RUC verificamos que tus gastos estén a tu nombre y dejamos fuera las facturas que tú emites.
   </p>

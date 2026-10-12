@@ -34,9 +34,13 @@ namespace Back.Services
             if (await _usuarioRepository.GetByCorreoAsync(correo) is not null)
                 throw BusinessException.Conflict("No se pudo crear la cuenta. Intenta iniciar sesión o recuperar tu contraseña.");
 
+            var (nombres, apellidos) = (request.Nombres.Trim(), request.Apellidos.Trim());
             var usuario = new Usuario
             {
-                Nombre = request.Username.Trim(),
+                Nombre = Usuario.NombreCompleto(nombres, apellidos),
+                Nombres = nombres,
+                Apellidos = apellidos,
+                FechaNacimiento = request.FechaNacimiento,
                 Correo = correo,
                 PasswordHash = PasswordSecurity.Hash(request.Password),
                 Rol = Roles.User,
@@ -97,8 +101,16 @@ namespace Back.Services
         public async Task RestablecerAsync(ResetPasswordRequest request)
         {
             var hash = PasswordSecurity.Fingerprint(request.Token.ToLowerInvariant());
-            var passwordHash = PasswordSecurity.Hash(request.Password);
             var email = request.Email.Trim().ToLowerInvariant();
+            // Con un enlace vigente, la nueva clave no puede ser la actual ni contener datos personales.
+            var usuario = await _db.Usuarios.AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Correo == email && u.ResetTokenHash == hash && u.ResetExpiresAt > DateTime.UtcNow)
+                ?? throw new BusinessException("El enlace no es válido o ha caducado. Solicita uno nuevo.");
+            if (PasswordSecurity.Verify(request.Password, usuario.PasswordHash))
+                throw new BusinessException("La nueva contraseña debe ser distinta a la actual.");
+            if (PasswordSecurity.ContieneDatosPersonales(request.Password, usuario.Nombres, usuario.Apellidos, usuario.Correo, usuario.FechaNacimiento))
+                throw new BusinessException(DatosPersonales.MensajeClave);
+            var passwordHash = PasswordSecurity.Hash(request.Password);
             // Actualización condicional atómica: solo una solicitud puede consumir el enlace.
             var changed = await _db.Usuarios.Where(u => u.Correo == email && u.ResetTokenHash == hash
                 && u.ResetExpiresAt > DateTime.UtcNow).ExecuteUpdateAsync(s => s
