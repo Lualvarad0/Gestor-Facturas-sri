@@ -25,6 +25,7 @@ export const routes: Routes = [
       { path: 'importar', title: 'Traer facturas · Nudo', loadComponent: () => import('./pages/importar/importar').then((m) => m.Importar) },
       { path: 'presupuesto', title: 'Presupuesto · Nudo', loadComponent: () => import('./pages/presupuesto/presupuesto').then((m) => m.PresupuestoPagina) },
       { path: 'proveedores', title: 'Proveedores · Nudo', loadComponent: () => import('./pages/proveedores/proveedores').then((m) => m.Proveedores) },
+      { path: 'perfil', title: 'Editar perfil · Nudo', loadComponent: () => import('./pages/perfil/perfil').then((m) => m.EditarPerfil) },
       { path: 'configuracion', title: 'Configuración · Nudo', loadComponent: () => import('./pages/configuracion/configuracion').then((m) => m.Configuracion) },
     ],
   },

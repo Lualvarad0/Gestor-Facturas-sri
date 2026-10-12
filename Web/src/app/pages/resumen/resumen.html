@@ -20,30 +20,48 @@
 
   @if (presupuesto().datos; as p) {
     @if (p.rubros.length || p.ingresoMensual) {
-      <section class="card mt-6 p-5 sm:p-6" aria-labelledby="titulo-presupuesto">
-        <div class="flex flex-wrap items-center justify-between gap-3"><h2 id="titulo-presupuesto" class="font-semibold">Tu presupuesto de {{ periodo.etiqueta() }}</h2><a routerLink="/presupuesto" class="text-xs text-primary hover:underline">Editar presupuesto →</a></div>
-        <div class="mt-4 grid gap-4 text-sm sm:grid-cols-3">
-          <div><p class="etiqueta">Ingreso aproximado</p><p class="mt-1 text-xl font-semibold money">{{ (p.ingresoMensual ?? 0) | dinero }}</p></div>
-          <div><p class="etiqueta">Gasto del mes</p><p class="mt-1 text-xl font-semibold money">{{ r.total | dinero }}</p></div>
+      <section class="card mt-6 grid overflow-hidden lg:grid-cols-[19rem_1fr]" aria-labelledby="titulo-presupuesto" [attr.aria-busy]="presupuesto().cargando">
+        <!-- Resumen: cuánto queda del ingreso -->
+        <div class="border-b border-border bg-bg-2 p-5 sm:p-6 lg:border-r lg:border-b-0">
+          <h2 id="titulo-presupuesto" class="etiqueta">Presupuesto de {{ periodo.etiqueta() }}</h2>
           @if (p.ingresoMensual) {
-            <div><p class="etiqueta">{{ p.ingresoMensual - r.total >= 0 ? 'Te queda' : 'Te pasaste por' }}</p><p class="mt-1 text-xl font-semibold money" [class.text-danger]="p.ingresoMensual - r.total < 0" [class.text-success]="p.ingresoMensual - r.total >= 0">{{ (p.ingresoMensual - r.total < 0 ? r.total - p.ingresoMensual : p.ingresoMensual - r.total) | dinero }}</p></div>
+            <p class="mt-3 text-3xl font-semibold tracking-tight">{{ (p.ingresoMensual - r.total < 0 ? r.total - p.ingresoMensual : p.ingresoMensual - r.total) | dinero }}</p>
+            <p class="mt-1 text-sm text-muted-fg">{{ p.ingresoMensual - r.total >= 0 ? 'disponibles de tu ingreso' : 'por encima de tu ingreso' }}</p>
+            <app-medidor class="mt-5" [gastado]="r.total" [limite]="p.ingresoMensual" />
+          } @else {
+            <p class="mt-3 text-sm text-muted-fg">Agrega tu ingreso del mes para ver cuánto te queda.</p>
+          }
+          <dl class="mt-5 space-y-2 border-t border-border pt-4 text-sm">
+            <div class="flex justify-between gap-3"><dt class="text-muted-fg">Límites asignados</dt><dd class="money">{{ p.totalLimites | dinero }}</dd></div>
+            <div class="flex justify-between gap-3"><dt class="text-muted-fg">Gastado en rubros</dt><dd class="money">{{ p.totalGastado | dinero }}</dd></div>
+            @if (p.gastoSinRubro > 0) {
+              <div class="flex justify-between gap-3"><dt><a routerLink="/proveedores" class="text-muted-fg underline-offset-2 hover:text-primary hover:underline">Proveedores sin rubro</a></dt><dd class="money">{{ p.gastoSinRubro | dinero }}</dd></div>
+            }
+          </dl>
+        </div>
+
+        <!-- Rubros: del que más ha consumido su límite al que menos -->
+        <div class="p-5 sm:p-6">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <h3 class="font-semibold">Tus rubros</h3>
+              @if (alertas().excedidos) { <span class="pildora bg-danger-soft text-danger">{{ alertas().excedidos }} {{ alertas().excedidos === 1 ? 'excedido' : 'excedidos' }}</span> }
+              @if (alertas().cerca) { <span class="pildora bg-warning-soft text-warning">{{ alertas().cerca }} cerca del límite</span> }
+            </div>
+            <a routerLink="/presupuesto" class="text-xs text-primary hover:underline">Editar presupuesto →</a>
+          </div>
+          @if (rubros().length) {
+            <ul class="mt-4 grid gap-3 md:grid-cols-2">
+              @for (rb of rubros(); track rb.id) {
+                <li class="rounded-xl border border-border p-4">
+                  <app-medidor [nombre]="rb.nombre" [color]="rb.color" [gastado]="rb.gastado" [limite]="rb.limite" />
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="mt-4 rounded-xl bg-muted p-4 text-sm text-muted-fg">Crea rubros con un límite para seguir tu gasto. <a routerLink="/presupuesto" class="text-primary hover:underline">Crear rubros</a></p>
           }
         </div>
-        @if (rubros().length) {
-          <ul class="mt-5 grid gap-x-8 gap-y-4 md:grid-cols-2">
-            @for (rb of rubros(); track rb.id) {
-              <li>
-                <div class="flex justify-between gap-3 text-sm"><span class="truncate">{{ rb.nombre }}</span><span class="money shrink-0" [class.text-danger]="rb.gastado > rb.limite">{{ rb.gastado | dinero }} <span class="text-muted-fg">/ {{ rb.limite | dinero }}</span></span></div>
-                <div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuemin="0" aria-valuemax="100" [attr.aria-valuenow]="rb.avance > 100 ? 100 : rb.avance" [attr.aria-label]="'Gastado en ' + rb.nombre">
-                  <div class="h-full rounded-full" [style.width.%]="rb.avance > 100 ? 100 : rb.avance" [class]="rb.avance > 100 ? 'bg-danger' : rb.avance > 80 ? 'bg-warning' : 'bg-success'"></div>
-                </div>
-              </li>
-            }
-          </ul>
-          @if (p.gastoSinRubro > 0) {
-            <a routerLink="/proveedores" class="mt-4 inline-block text-xs text-muted-fg hover:text-primary hover:underline">{{ p.gastoSinRubro | dinero }} de proveedores sin rubro. Asígnalos →</a>
-          }
-        }
       </section>
     } @else {
       <a routerLink="/presupuesto" class="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary-soft p-5">
@@ -68,14 +86,31 @@
     </section>
     <section class="card p-5 sm:p-6">
       <div class="flex items-center justify-between gap-3"><h2 class="font-semibold">¿En qué estás gastando?</h2><a routerLink="/gastos" class="text-xs text-primary hover:underline">Ver facturas →</a></div>
-      <div class="mt-6 space-y-4">
-        @for (c of categorias(); track c.valor) {
-          <a routerLink="/gastos" [queryParams]="{ categoria: c.valor }" class="block rounded-md hover:bg-muted">
-            <div class="flex justify-between gap-3 text-sm"><span>{{ c.nombre }}</span><span class="money font-medium">{{ c.total | dinero }}</span></div>
-            <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"><div class="h-full rounded-full" [style.background]="c.color" [style.width.%]="(c.total < 0 ? -c.total : c.total) / baseCategorias() * 100"></div></div>
-          </a>
-        } @empty { <p class="text-sm text-muted-fg">Las categorías aparecerán cuando importes tus facturas.</p> }
-      </div>
+      @if (categorias().length) {
+        <p class="mt-1 text-sm text-muted-fg">Reparto de tu gasto del mes por categoría.</p>
+        @if (segmentosCategorias().length) {
+          <app-barra-apilada class="mt-6" [segmentos]="segmentosCategorias()" [(resaltado)]="categoriaResaltada"
+            etiqueta="Reparto del gasto por categoría; el detalle está en la lista" />
+        }
+        <ul class="mt-4" aria-label="Gasto por categoría">
+          @for (c of categorias(); track c.valor) {
+            <li>
+              <a routerLink="/gastos" [queryParams]="{ categoria: c.valor }"
+                class="-mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 text-sm transition-colors hover:bg-muted"
+                [class.bg-muted]="categoriaResaltada() === c.valor"
+                (mouseenter)="categoriaResaltada.set(c.valor)" (mouseleave)="categoriaResaltada.set(null)"
+                (focus)="categoriaResaltada.set(c.valor)" (blur)="categoriaResaltada.set(null)">
+                <span class="size-2.5 shrink-0 rounded-[3px]" [style.background]="c.color" aria-hidden="true"></span>
+                <span class="min-w-0 flex-1 truncate">{{ c.nombre }}</span>
+                <span class="w-12 text-right text-xs text-muted-fg tabular-nums">{{ c.porcentaje ?? '—' }}</span>
+                <span class="w-24 text-right font-medium money">{{ c.total | dinero }}</span>
+              </a>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="mt-6 text-sm text-muted-fg">Las categorías aparecerán cuando importes tus facturas.</p>
+      }
     </section>
     <section class="card p-5 sm:p-6">
       <h2 class="font-semibold">Tus principales proveedores</h2>

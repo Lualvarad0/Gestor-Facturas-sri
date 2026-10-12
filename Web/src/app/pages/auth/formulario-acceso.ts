@@ -8,6 +8,7 @@ import { AuthService } from '../../core/auth';
 import { mensajeDeError } from '../../core/estado';
 import { CoincidenciaClaves } from '../../shared/coincidencia-claves';
 import { contieneDatosPersonales, matchingPasswords, securePassword } from '../../shared/password';
+import { SelectorFecha } from '../../shared/calendario';
 import { haceAnios, mayorDeEdad, nombreValido } from '../../shared/validadores';
 
 export type ModoAcceso = 'login' | 'registro';
@@ -21,7 +22,7 @@ function sinDatosPersonales(form: AbstractControl): ValidationErrors | null {
 @Component({
   selector: 'app-formulario-acceso',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, NgTemplateOutlet, LucideLoader, LucideEye, LucideEyeOff, LucideCircleCheck, CoincidenciaClaves],
+  imports: [ReactiveFormsModule, RouterLink, NgTemplateOutlet, SelectorFecha, LucideLoader, LucideEye, LucideEyeOff, LucideCircleCheck, CoincidenciaClaves],
   template: `
     <h1 class="titular text-[clamp(34px,5vw,44px)]">
       {{ registro() ? 'Crea tu' : 'Inicia' }} <em class="italic">{{ registro() ? 'cuenta' : 'sesión' }}</em>
@@ -56,11 +57,11 @@ function sinDatosPersonales(form: AbstractControl): ValidationErrors | null {
         </div>
         <div>
           <label class="field-label" [attr.for]="id('nacimiento')">Fecha de nacimiento</label>
-          <input [id]="id('nacimiento')" type="date" class="input min-h-11" formControlName="fechaNacimiento" autocomplete="bday"
+          <app-selector-fecha [inputId]="id('nacimiento')" formControlName="fechaNacimiento" autocomplete="bday" vistaInicial="years"
             [min]="fechaMinima" [max]="fechaMaxima"
-            [attr.aria-invalid]="invalido('fechaNacimiento')" [attr.aria-describedby]="id('nacimiento-error')" />
+            [invalido]="invalido('fechaNacimiento')" [describedby]="id('nacimiento-error')" />
           @if (invalido('fechaNacimiento')) {
-            <p [id]="id('nacimiento-error')" class="field-error">Debes ser mayor de 18 años. Revisa la fecha.</p>
+            <p [id]="id('nacimiento-error')" class="field-error">Escribe una fecha válida (dd/mm/aaaa). Debes ser mayor de 18 años.</p>
           }
         </div>
       }

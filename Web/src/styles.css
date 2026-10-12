@@ -328,6 +328,57 @@
 .chart-bar.negativo { background: var(--warning) !important; }
 @media (max-width: 480px) { .expense-chart { gap: 2px; } .chart-column { padding: 2px; } }
 
+/* Calendario (Air Datepicker) con los tokens de Nudo; hereda el modo oscuro. */
+.air-datepicker {
+  --adp-font-family: var(--font-body);
+  --adp-font-size: 14px;
+  --adp-width: 288px;
+  --adp-padding: 10px;
+  --adp-z-index: 60;
+  --adp-border-radius: 14px;
+  --adp-cell-border-radius: 8px;
+  --adp-btn-border-radius: 999px;
+  --adp-nav-height: 40px;
+  --adp-nav-action-size: 36px;
+  --adp-day-cell-height: 36px;
+  --adp-month-cell-height: 46px;
+  --adp-year-cell-height: 52px;
+  --adp-pointer-size: 0px;
+  --adp-background-color: var(--card);
+  --adp-background-color-hover: var(--muted);
+  --adp-background-color-active: var(--muted);
+  --adp-color: var(--fg);
+  --adp-color-secondary: var(--muted-fg);
+  --adp-accent-color: var(--primary);
+  --adp-color-current-date: var(--primary);
+  --adp-color-other-month: color-mix(in srgb, var(--muted-fg) 50%, transparent);
+  --adp-color-other-month-hover: var(--muted-fg);
+  --adp-color-disabled: color-mix(in srgb, var(--muted-fg) 40%, transparent);
+  --adp-day-name-color: var(--muted-fg);
+  --adp-border-color: var(--border);
+  --adp-border-color-inner: var(--border);
+  --adp-nav-arrow-color: var(--muted-fg);
+  --adp-nav-color-secondary: var(--muted-fg);
+  --adp-cell-background-color-hover: var(--muted);
+  --adp-cell-background-color-selected: var(--ink);
+  --adp-cell-background-color-selected-hover: var(--ink);
+  --adp-btn-color: var(--primary);
+  --adp-btn-color-hover: var(--fg);
+  --adp-btn-background-color-hover: var(--muted);
+  --adp-overlay-background-color: rgba(17, 20, 23, 0.45);
+  --adp-mobile-width: 320px;
+  box-shadow: var(--shadow-dashboard);
+  margin-top: 6px;
+}
+.air-datepicker-cell.-selected-,
+.air-datepicker-cell.-selected-.-current- { color: var(--ink-fg); font-weight: 600; }
+.air-datepicker-cell.-current-:not(.-selected-) { font-weight: 600; box-shadow: inset 0 0 0 1px var(--primary-soft); }
+.air-datepicker-nav--title { font-weight: 600; text-transform: capitalize; }
+.air-datepicker-nav--title i { color: var(--muted-fg); }
+.air-datepicker-nav--action, .air-datepicker-nav--title { border-radius: 8px; }
+.air-datepicker-body--day-name { font-size: 12px; font-weight: 500; text-transform: none; }
+.air-datepicker-cell.-month-, .air-datepicker-cell.-year- { text-transform: capitalize; }
+
 /* Transición entre páginas (View Transitions del router): fundido con un leve desplazamiento. */
 ::view-transition-old(root) {
   animation: 180ms ease-in both salir-vista;

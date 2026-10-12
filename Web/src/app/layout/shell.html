@@ -48,25 +48,51 @@
 
     </nav>
 
-    <div class="border-t border-border p-3">
-      <a routerLink="/configuracion" routerLinkActive="nav-activo" class="nav-item">
-        <svg lucideSettings class="size-5" aria-hidden="true"></svg>
-        <span class="flex-1">Configuración</span>
-        @if (!perfil.completo()) {
-          <span class="size-2 rounded-full bg-warning" aria-hidden="true"></span>
-          <span class="sr-only">(perfil incompleto)</span>
-        }
-      </a>
-      <div class="mt-2 flex items-center gap-3 rounded-lg px-3 py-2">
-        <span class="grid size-9 shrink-0 place-items-center rounded-full bg-primary-soft text-sm font-semibold text-primary" aria-hidden="true">{{ iniciales() }}</span>
-        <div class="min-w-0 flex-1">
-          <p class="truncate text-sm font-medium">{{ auth.usuario()?.nombre }}</p>
-          <p class="truncate text-xs text-muted-fg">{{ auth.usuario()?.email }}</p>
+    <!-- Menú de la cuenta: perfil, configuración del sistema y salida -->
+    <div class="relative border-t border-border p-3" #menuCuenta (keydown)="teclaMenu($event)">
+      @if (menuUsuario()) {
+        <div id="menu-usuario" role="menu" aria-label="Tu cuenta"
+          class="absolute inset-x-3 bottom-full z-50 mb-2 overflow-hidden rounded-xl border border-border bg-card p-1.5 shadow-dashboard">
+          <div class="px-3 pt-2 pb-2.5">
+            <p class="truncate text-sm font-semibold">{{ nombre() }}</p>
+            <p class="truncate text-xs text-muted-fg">{{ auth.usuario()?.email }}</p>
+          </div>
+          <div class="my-1 h-px bg-border" role="separator"></div>
+          <a routerLink="/perfil" routerLinkActive="nav-activo" role="menuitem" class="nav-item">
+            <svg lucideUserPen class="size-5" aria-hidden="true"></svg>
+            <span class="flex-1">Editar perfil</span>
+            @if (!perfil.completo()) {
+              <span class="size-2 shrink-0 rounded-full bg-warning" title="Perfil incompleto" aria-hidden="true"></span>
+              <span class="sr-only">(incompleto)</span>
+            }
+          </a>
+          <a routerLink="/configuracion" routerLinkActive="nav-activo" role="menuitem" class="nav-item">
+            <svg lucideSettings class="size-5" aria-hidden="true"></svg> Configuración
+          </a>
+          <div class="my-1 h-px bg-border" role="separator"></div>
+          <button type="button" role="menuitem" class="nav-item w-full hover:bg-danger-soft hover:text-danger" (click)="auth.cerrarSesion()">
+            <svg lucideLogOut class="size-5" aria-hidden="true"></svg> Cerrar sesión
+          </button>
         </div>
-        <button type="button" class="btn btn-ghost -mr-2 px-2" aria-label="Cerrar sesión" title="Cerrar sesión" (click)="auth.cerrarSesion()">
-          <svg lucideLogOut class="size-5" aria-hidden="true"></svg>
-        </button>
-      </div>
+      }
+      <button #botonCuenta type="button"
+        class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-muted"
+        [class.bg-muted]="menuUsuario()"
+        aria-haspopup="menu" aria-controls="menu-usuario" [attr.aria-expanded]="menuUsuario()"
+        (click)="alternarMenuUsuario()">
+        <span class="relative grid size-9 shrink-0 place-items-center rounded-full bg-primary-soft text-sm font-semibold text-primary" aria-hidden="true">
+          {{ iniciales() }}
+          @if (!perfil.completo()) {
+            <span class="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-warning ring-2 ring-bg-2"></span>
+          }
+        </span>
+        <span class="min-w-0 flex-1">
+          <span class="block truncate text-sm font-medium">{{ nombre() }}</span>
+          <span class="block truncate text-xs text-muted-fg">{{ auth.usuario()?.email }}</span>
+        </span>
+        <svg lucideChevronsUpDown class="size-4 shrink-0 text-muted-fg" aria-hidden="true"></svg>
+        <span class="sr-only">Abrir el menú de tu cuenta{{ perfil.completo() ? '' : ' (perfil incompleto)' }}</span>
+      </button>
     </div>
     <app-credito class="block px-6 pb-4" />
   </aside>
@@ -85,7 +111,7 @@
         <svg lucideMenu class="size-5" aria-hidden="true"></svg>
       </button>
 
-      <label class="flex items-center gap-3 text-sm font-medium"><span class="hidden sm:inline">Período</span><input type="month" class="input w-auto" aria-label="Período de gastos" min="2000-01" max="2100-12" [value]="periodo.valor()" (change)="periodo.seleccionar($any($event.target).value)"></label>
+      <div class="flex items-center gap-2 text-sm font-medium"><span class="hidden sm:inline">Período</span><app-selector-periodo /></div>
 
       <div class="ml-auto">
         <button

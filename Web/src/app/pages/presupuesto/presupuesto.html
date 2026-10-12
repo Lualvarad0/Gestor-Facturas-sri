@@ -38,7 +38,9 @@
           <li class="rounded-xl border border-border p-3" [formGroupName]="i">
             <div class="grid grid-cols-[1fr_auto] gap-3 sm:grid-cols-[minmax(0,1fr)_9rem_auto] sm:items-start">
               <div class="col-span-2 sm:col-span-1">
-                <label class="field-label" [attr.for]="'rubro-nombre-' + i">Rubro</label>
+                <label class="field-label flex items-center gap-2" [attr.for]="'rubro-nombre-' + i">
+                  <span class="size-2.5 rounded-[3px]" [style.background]="colorRubro(i)" aria-hidden="true"></span> Rubro
+                </label>
                 <input [id]="'rubro-nombre-' + i" class="input min-h-11" formControlName="nombre" maxlength="40" placeholder="Ej.: Internet"
                   [attr.aria-invalid]="invalido(i, 'nombre') || duplicados().has(rubro.controls.nombre.value.trim().toLowerCase())" />
                 @if (invalido(i, 'nombre')) {
@@ -65,16 +67,12 @@
             </div>
 
             @if (!inicio && rubro.controls.id.value !== null && gastado().get(rubro.controls.id.value); as r) {
-              <div class="mt-3">
-                <div class="flex justify-between gap-3 text-xs">
-                  <span class="text-muted-fg">{{ r.proveedores }} {{ r.proveedores === 1 ? 'proveedor' : 'proveedores' }} · {{ periodo.etiqueta() }}</span>
-                  <span class="money" [class.text-danger]="r.gastado > r.limite">{{ r.gastado | dinero }} de {{ r.limite | dinero }}</span>
-                </div>
-                <div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuemin="0" aria-valuemax="100"
-                  [attr.aria-valuenow]="porcentaje(r.gastado, r.limite)" [attr.aria-label]="'Gastado en ' + r.nombre">
-                  <div class="h-full rounded-full transition-[width]" [style.width.%]="porcentaje(r.gastado, r.limite)"
-                    [class]="r.gastado > r.limite ? 'bg-danger' : r.gastado > r.limite * 0.8 ? 'bg-warning' : 'bg-success'"></div>
-                </div>
+              <div class="mt-3 border-t border-border pt-3">
+                <p class="mb-1.5 text-xs text-muted-fg">
+                  {{ periodo.etiqueta() }} · {{ r.proveedores }} {{ r.proveedores === 1 ? 'proveedor asignado' : 'proveedores asignados' }}
+                </p>
+                <!-- Con el límite guardado; si se edita, el nuevo cuenta al guardar -->
+                <app-medidor [gastado]="r.gastado" [limite]="r.limite" />
               </div>
             }
           </li>
@@ -99,22 +97,44 @@
   </div>
 
   <aside class="card p-5 sm:p-6 xl:sticky xl:top-24" aria-labelledby="titulo-balance">
-    <h2 id="titulo-balance" class="font-semibold">Tu balance</h2>
-    <dl class="mt-4 space-y-3 text-sm">
-      <div class="flex justify-between gap-3"><dt class="text-muted-fg">Ingreso</dt><dd class="money font-medium">{{ ingreso() | dinero }}</dd></div>
-      <div class="flex justify-between gap-3"><dt class="text-muted-fg">Total de límites</dt><dd class="money font-medium">{{ totalLimites() | dinero }}</dd></div>
-      <div class="flex justify-between gap-3 border-t border-border pt-3">
-        <dt class="font-medium">{{ disponible() >= 0 ? 'Sin asignar' : 'Te excedes en' }}</dt>
-        <dd class="money font-semibold" [class.text-danger]="disponible() < 0" [class.text-success]="disponible() > 0">{{ (disponible() < 0 ? -disponible() : disponible()) | dinero }}</dd>
-      </div>
-    </dl>
-    @if (ingreso() > 0) {
-      <div class="mt-4 h-2 overflow-hidden rounded-full bg-muted" aria-hidden="true">
-        <div class="h-full rounded-full" [class]="disponible() < 0 ? 'bg-danger' : 'bg-primary'" [style.width.%]="porcentaje(totalLimites(), ingreso())"></div>
-      </div>
+    <h2 id="titulo-balance" class="etiqueta">Así repartes tu ingreso</h2>
+    <p class="mt-2 text-3xl font-semibold tracking-tight">{{ (disponible() < 0 ? -disponible() : disponible()) | dinero }}</p>
+    <p class="mt-1 flex items-center gap-1.5 text-sm" [class.text-danger]="disponible() < 0" [class.text-muted-fg]="disponible() >= 0">
+      @if (disponible() < 0) { <svg lucideCircleAlert class="size-4" aria-hidden="true"></svg> }
+      {{ disponible() < 0 ? 'más de lo que ingresa' : ingreso() > 0 ? 'sin asignar a ningún rubro' : 'agrega tu ingreso para comparar' }}
+    </p>
+
+    @if (ingreso() > 0 || totalLimites() > 0) {
+      <app-barra-apilada class="mt-5" [segmentos]="reparto()" [base]="ingreso()" [marcador]="marcadorIngreso()" [(resaltado)]="rubroResaltado"
+        [etiqueta]="'Límites de los rubros frente al ingreso; el detalle está en la lista'" />
+      @if (marcadorIngreso() !== null) {
+        <p class="mt-2 text-xs text-muted-fg">La línea marca tu ingreso.</p>
+      }
+      <ul class="mt-4 space-y-1 text-sm">
+        @for (s of reparto(); track s.clave) {
+          <li class="-mx-2 flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors" [class.bg-muted]="rubroResaltado() === s.clave"
+            (mouseenter)="rubroResaltado.set(s.clave)" (mouseleave)="rubroResaltado.set(null)">
+            <span class="size-2.5 shrink-0 rounded-[3px]" [style.background]="s.color" aria-hidden="true"></span>
+            <span class="min-w-0 flex-1 truncate">{{ s.nombre }}</span>
+            <span class="money text-muted-fg">{{ s.valor | dinero }}</span>
+          </li>
+        }
+        @if (disponible() > 0) {
+          <li class="-mx-2 flex items-center gap-2.5 px-2 py-1.5">
+            <span class="size-2.5 shrink-0 rounded-[3px] bg-muted ring-1 ring-border" aria-hidden="true"></span>
+            <span class="flex-1">Sin asignar</span>
+            <span class="money text-muted-fg">{{ disponible() | dinero }}</span>
+          </li>
+        }
+      </ul>
     }
+
+    <dl class="mt-4 space-y-2 border-t border-border pt-4 text-sm">
+      <div class="flex justify-between gap-3"><dt class="text-muted-fg">Ingreso</dt><dd class="money">{{ ingreso() | dinero }}</dd></div>
+      <div class="flex justify-between gap-3"><dt class="text-muted-fg">Total de límites</dt><dd class="money">{{ totalLimites() | dinero }}</dd></div>
+    </dl>
     @if (disponible() < 0) {
-      <p class="aviso-atencion mt-4 text-xs" role="status">Tus límites suman más que tu ingreso. Puedes guardarlo así, pero revisa si es realista.</p>
+      <p class="aviso-atencion mt-4 text-xs" role="status">Tus límites suman {{ -disponible() | dinero }} más que tu ingreso. Puedes guardarlo así, pero revisa si es realista.</p>
     }
 
     @if (!inicio && carga().datos; as p) {
